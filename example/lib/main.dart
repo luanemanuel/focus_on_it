@@ -3,7 +3,7 @@ import 'package:focus_on_it/focus_on_it.dart';
 import 'package:logger/logger.dart';
 
 class FocusOnItExample extends StatelessWidget {
-  const FocusOnItExample({super.key});
+  const FocusOnItExample({Key? key}) : super(key: key,);
 
   @override
   Widget build(BuildContext context) => FocusOnIt(
@@ -69,7 +69,7 @@ class FocusOnItExample extends StatelessWidget {
 }
 
 class TestPage extends StatelessWidget {
-  const TestPage({super.key});
+  const TestPage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) => Scaffold(
