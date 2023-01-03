@@ -1,20 +1,20 @@
-<p style="align-content: center">
+<p align="center">
 <img src="https://github.com/luanemanuel/focus_on_it/blob/master/assets/focus_on_it.png?raw=true" width="350" alt="Flutter Focus On It Package"/>
 </p>
 
-<p style="align-content: center">
+<p align="center">
 	<a href="https://pub.dev/packages/focus_on_it"><img src="https://img.shields.io/pub/v/focus_on_it.svg" alt="Pub.dev Badge"></a>
-	<a href="https://github.com/luanemanuel/focus_on_it/actions"><img src="https://github.com/luanemanuel/focus_on_it/workflows/tests/badge.svg" alt="GitHub Build Badge"></a>
+	<a href="https://github.com/luanemanuel/focus_on_it/actions"><img src="https://github.com/luanemanuel/focus_on_it/workflows/test/badge.svg" alt="GitHub Build Badge"></a>
 	<a href="https://github.com/tenhobi/effective_dart"><img src="https://img.shields.io/badge/style-effective_dart-40c4ff.svg" alt="Effective Dart Badge"></a>
 	<a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-purple.svg" alt="MIT License Badge"></a>
 	<a href="https://github.com/luanemanuel/focus_on_it/"><img src="https://img.shields.io/badge/platform-flutter-ff69b4.svg" alt="Flutter Platform Badge"></a>
 </p>
 
-# Focus On It
-
 A continuation of the [Focus Detector](https://pub.dev/packages/focus_detector) project which is not maintained anymore.
 
 Get notified when a widget is focused or unfocused.
+
+---
 
 ## About
 
