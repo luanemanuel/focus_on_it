@@ -1,4 +1,19 @@
-include: package:flutter_lints/flutter.yaml
+include: package:very_good_analysis/analysis_options.3.1.0.yaml
+analyzer:
+  exclude:
+    - "**/*.g.dart"
+    - "lib/generated/**"
+    - "lib/i18n/stock_messages_*.dart"
+  strong-mode:
+    implicit-casts: true
+    implicit-dynamic: true
+linter:
+  rules:
+    public_member_api_docs: false
+    no_default_cases: false
+    library_private_types_in_public_api: false
+    prefer_asserts_with_message: false
+    sort_pub_dependencies: false
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options
