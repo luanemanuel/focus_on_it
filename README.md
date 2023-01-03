@@ -1,3 +1,7 @@
+<p style="align-content: center">
+<img src="" width="100" alt="Flutter Focus On It Package"/>
+</p>
+
 # Focus On It
 
 A continuation of the [Focus Detector](https://pub.dev/packages/focus_detector) project which is not maintained anymore.
