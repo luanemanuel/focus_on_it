@@ -3,7 +3,10 @@ import 'package:focus_on_it/focus_on_it.dart';
 import 'package:logger/logger.dart';
 
 class FocusOnItExample extends StatelessWidget {
-  const FocusOnItExample({Key? key}) : super(key: key,);
+  const FocusOnItExample({Key? key})
+      : super(
+          key: key,
+        );
 
   @override
   Widget build(BuildContext context) => FocusOnIt(
@@ -52,10 +55,10 @@ class FocusOnItExample extends StatelessWidget {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    final route = MaterialPageRoute(
+                    final route = MaterialPageRoute<void>(
                       builder: (_) => const TestPage(),
                     );
-                    Navigator.of(context).push(route);
+                    Navigator.of(context).push<void>(route);
                   },
                   child: const Text(
                     'PUSH ANOTHER PAGE',
