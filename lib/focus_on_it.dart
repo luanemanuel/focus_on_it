@@ -19,11 +19,13 @@ class FocusOnIt extends StatefulWidget {
   final Widget child;
 
   /// Equivalent to `onPause()` on Android and `viewDidDisappear()` on iOS.
-  /// Triggered when the widget is unfocused after route transition or the widget paused from a focused state.
+  /// Triggered when the widget is unfocused after route transition or the
+  /// widget paused from a focused state.
   final VoidCallback? onFocus;
 
   /// Equivalent to `onResume()` on Android and `viewDidAppear()` on iOS.
-  /// Triggered when the widget is focused after route transition or the widget resumed from a paused state.
+  /// Triggered when the widget is focused after route transition or the widget
+  /// resumed from a paused state.
   final VoidCallback? onUnfocus;
 
   /// Triggered when the app is resumed from a paused state.
@@ -97,22 +99,22 @@ class _FocusOnItState extends State<FocusOnIt> with WidgetsBindingObserver {
     }
   }
 
-  /// Calls the [onFocus] callback.
+  /// Calls the onFocus callback.
   void _onFocus() => widget.onFocus?.call();
 
-  /// Calls the [onUnfocus] callback.
+  /// Calls the onUnfocus callback.
   void _onUnfocus() => widget.onUnfocus?.call();
 
-  /// Calls the [onVisibilityGained] callback.
+  /// Calls the onVisibilityGained callback.
   void _onVisibilityGained() => widget.onVisibilityGained?.call();
 
-  /// Calls the [onVisibilityLost] callback.
+  /// Calls the onVisibilityLost callback.
   void _onVisibilityLost() => widget.onVisibilityLost?.call();
 
-  /// Calls the [onForegroundGained] callback.
+  /// Calls the onForegroundGained callback.
   void _onForegroundGained() => widget.onForegroundGained?.call();
 
-  /// Calls the [onForegroundLost] callback.
+  /// Calls the onForegroundLost callback.
   void _onForegroundLost() => widget.onForegroundLost?.call();
 
   @override
