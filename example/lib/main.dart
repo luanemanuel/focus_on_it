@@ -7,37 +7,31 @@ class FocusOnItExample extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => FocusOnIt(
-        onUnfocus: () {
-          /// This function is triggered when [onVisibilityLost] or
-          /// [onForegroundLost] is called
-          ///
-          /// Equivalent to onPause() on Android or viewDidDisappear() on IOS.
-          logger.i('Focus Lost.');
-        },
         onFocus: () {
-          /// This function is triggered when [onVisibilityGained] or
-          /// [onForegroundGained] is called
-          ///
-          /// Equivalent to onResume() on Android or viewDidAppear() on IOS.
+          /// Equivalent to `onPause()` on Android and `viewDidDisappear()` on iOS.
+          /// Triggered when the widget is unfocused after route transition or the widget paused from a focused state.
           logger.i('Focus Gained.');
         },
-        onVisibilityLost: () {
-          /// The widget is no longer visible within your app.
-          logger.i('Visibility Lost.');
-        },
-        onVisibilityGained: () {
-          /// The widget is now visible within your app.
-          logger.i('Visibility Gained.');
-        },
-        onForegroundLost: () {
-          /// The user sent your app to the background by opening another app
-          /// or turned off the device's screen while your widget was visible.
-          logger.i('Foreground Lost.');
+        onUnfocus: () {
+          /// Equivalent to `onResume()` on Android and `viewDidAppear()` on iOS.
+          /// Triggered when the widget is focused after route transition or the widget resumed from a paused state.
+          logger.i('Focus Lost.');
         },
         onForegroundGained: () {
-          /// The user switched back to your app or turned the device\'s screen
-          /// back on while your widget was visible.
+          /// Triggered when the app is resumed from a paused state.
           logger.i('Foreground Gained.');
+        },
+        onForegroundLost: () {
+          /// Triggered when the app is paused from a resumed state.
+          logger.i('Foreground Lost.');
+        },
+        onVisibilityGained: () {
+          /// Triggered when the widget is visible after route transition.
+          logger.i('Visibility Gained.');
+        },
+        onVisibilityLost: () {
+          /// Triggered when the widget is no longer visible after route transition.
+          logger.i('Visibility Lost.');
         },
         child: Material(
           child: Padding(
