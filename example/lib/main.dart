@@ -2,56 +2,42 @@ import 'package:flutter/material.dart';
 import 'package:focus_on_it/focus_on_it.dart';
 import 'package:logger/logger.dart';
 
-class FocusDetectorExample extends StatelessWidget {
-  const FocusDetectorExample({super.key});
+class FocusOnItExample extends StatelessWidget {
+  const FocusOnItExample({super.key});
 
   @override
   Widget build(BuildContext context) => FocusOnIt(
         onUnfocus: () {
-          logger.i(
-            'Focus Lost.'
-            '\nTriggered when either [onVisibilityLost] or [onForegroundLost] '
-            'is called.'
-            '\nEquivalent to onPause() on Android or viewDidDisappear() on '
-            'iOS.',
-          );
+          /// This function is triggered when [onVisibilityLost] or
+          /// [onForegroundLost] is called
+          ///
+          /// Equivalent to onPause() on Android or viewDidDisappear() on IOS.
+          logger.i('Focus Lost.');
         },
         onFocus: () {
-          logger.i(
-            'Focus Gained.'
-            '\nTriggered when either [onVisibilityGained] or '
-            '[onForegroundGained] '
-            'is called.'
-            '\nEquivalent to onResume() on Android or viewDidAppear() on iOS.',
-          );
+          /// This function is triggered when [onVisibilityGained] or
+          /// [onForegroundGained] is called
+          ///
+          /// Equivalent to onResume() on Android or viewDidAppear() on IOS.
+          logger.i('Focus Gained.');
         },
         onVisibilityLost: () {
-          logger.i(
-            'Visibility Lost.'
-            '\nIt means the widget is no longer visible within your app.',
-          );
+          /// The widget is no longer visible within your app.
+          logger.i('Visibility Lost.');
         },
         onVisibilityGained: () {
-          logger.i(
-            'Visibility Gained.'
-            '\nIt means the widget is now visible within your app.',
-          );
+          /// The widget is now visible within your app.
+          logger.i('Visibility Gained.');
         },
         onForegroundLost: () {
-          logger.i(
-            'Foreground Lost.'
-            '\nIt means, for example, that the user sent your app to the '
-            'background by opening another app or turned off the device\'s '
-            'screen while your widget was visible.',
-          );
+          /// The user sent your app to the background by opening another app
+          /// or turned off the device's screen while your widget was visible.
+          logger.i('Foreground Lost.');
         },
         onForegroundGained: () {
-          logger.i(
-            'Foreground Gained.'
-            '\nIt means, for example, that the user switched back to your app '
-            'or turned the device\'s screen back on while your widget was '
-            'visible.',
-          );
+          /// The user switched back to your app or turned the device\'s screen
+          /// back on while your widget was visible.
+          logger.i('Foreground Gained.');
         },
         child: Material(
           child: Padding(
@@ -120,7 +106,7 @@ void main() {
   runApp(
     const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: FocusDetectorExample(),
+      home: FocusOnItExample(),
     ),
   );
 }
