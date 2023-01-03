@@ -1,9 +1,13 @@
 name: test
 
-on: [push, workflow_dispatch]
+on: 
+  push:
+    branches:
+      - master
+
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -17,5 +21,8 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
         
-      - name: Run unit tests
+      - name: Run analyze
+        run: flutter analyze
+        
+      - name: Run tests
         run: flutter test --coverage
