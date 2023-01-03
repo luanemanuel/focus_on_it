@@ -17,6 +17,7 @@ class FocusOnIt extends StatefulWidget {
 
   final Widget child;
 
+  /// On FOCUS
   final VoidCallback? onFocus;
 
   final VoidCallback? onUnfocus;
