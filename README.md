@@ -1,39 +1,74 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# Focus On It
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/guides/libraries/writing-package-pages).
+A continuation of the [Focus Detector](https://pub.dev/packages/focus_detector) project which is not maintained anymore.
 
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-library-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/developing-packages).
--->
+Get notified when a widget is focused or unfocused.
 
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+## About
 
-## Features
+Similar to `onResume()`/`onPause()` on Android and `viewDidAppear()`/`viewDidDisappear()` on iOS, Focus On It gives you the ability to know when a widget is focused or unfocused and let you do something about it.
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
+Focus On It invoke callbacks when something happen to the widget focus. You can use it to get more control over your app and manage the events you might want, like:
 
-## Getting started
+- Pause a video when the user is not looking at it.
+- Stop a camera preview when the user is not looking at it and start it again when the user is looking at it.
+- Turn off a resource intensive feature when the user is not looking at it and turn it on again when the user is looking at it.
+- Sync data with API when user open a screen.
+- And much more!
 
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
+## Events
+
+Focus On It offers 6 events to help you manage your app:
+
+- `onFocus`: Equivalent to `onResume()` on Android and `viewDidAppear()` on iOS. Triggered when the widget is focused after route transition or the widget resumed from a paused state.
+- `onUnfocus`: Equivalent to `onPause()` on Android and `viewDidDisappear()` on iOS. Triggered when the widget is unfocused after route transition or the widget paused from a focused state.
+- `onForegroundGained`: Triggered when the app is resumed from a paused state.
+- `onForegroundLost`: Triggered when the app is paused from a resumed state.
+- `onVisibilityGained`: Triggered when the widget is visible after route transition.
+- `onVisibilityLost`: Triggered when the widget is no longer visible after route transition.
 
 ## Usage
 
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
-
 ```dart
-const like = 'sample';
+@override
+Widget build(BuildContext context) =>
+    FocusOnIt(
+      onFocus: () {
+        /// Equivalent to `onPause()` on Android and `viewDidDisappear()` on iOS. 
+        /// Triggered when the widget is unfocused after route transition or the widget paused from a focused state.
+        logger.i('Focus Gained.');
+      },
+      onUnfocus: () {
+        /// Equivalent to `onResume()` on Android and `viewDidAppear()` on iOS. 
+        /// Triggered when the widget is focused after route transition or the widget resumed from a paused state.
+        logger.i('Focus Lost.');
+      },
+      onForegroundGained: () {
+        /// Triggered when the app is resumed from a paused state.
+        logger.i('Foreground Gained.');
+      },
+      onForegroundLost: () {
+        /// Triggered when the app is paused from a resumed state.
+        logger.i('Foreground Lost.');
+      },
+      onVisibilityGained: () {
+        /// Triggered when the widget is visible after route transition.
+        logger.i('Visibility Gained.');
+      },
+      onVisibilityLost: () {
+        /// Triggered when the widget is no longer visible after route transition.
+        logger.i('Visibility Lost.');
+      },
+      child: const Placeholder(),
+    );
 ```
 
-## Additional information
+## Example
 
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.
+- [Focus On It Example](https://github.com/luanemanuel/focus_on_it/blob/develop/test/focus_on_it_test.dart)
+
+## Maintainers
+
+- [Luan Emanuel](https://github.com/luanemanuel)
+- [Lucas Claros](https://github.com/lucasclaros)
+
