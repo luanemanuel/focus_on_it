@@ -1,5 +1,5 @@
 <p style="align-content: center">
-<img src="" width="100" alt="Flutter Focus On It Package"/>
+<img src="https://github.com/luanemanuel/focus_on_it/blob/master/assets/focus_on_it.png?raw=true" width="350" alt="Flutter Focus On It Package"/>
 </p>
 
 # Focus On It
