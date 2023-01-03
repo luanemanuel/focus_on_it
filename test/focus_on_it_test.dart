@@ -1,12 +1,28 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:focus_on_it/focus_on_it.dart';
 
 void main() {
-  test('adds one to input values', () {
-    final calculator = Calculator();
-    expect(calculator.addOne(2), 3);
-    expect(calculator.addOne(-7), -6);
-    expect(calculator.addOne(0), 1);
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  Future<void> createWidget(WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: FocusOnIt(
+          child: Placeholder(),
+        ),
+      ),
+    );
+  }
+
+  testWidgets('Sanity test', (WidgetTester tester) async {
+    await tester.runAsync(() async {
+      await createWidget(tester);
+      await tester.pumpAndSettle();
+    });
+
+    expect(find.byType(FocusOnIt), findsOneWidget);
+    expect(find.byType(Placeholder), findsOneWidget);
   });
 }
