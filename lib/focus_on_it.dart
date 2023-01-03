@@ -3,6 +3,7 @@ library focus_on_it;
 import 'package:flutter/material.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
+/// A widget that notifies when it is focused, unfocused, visible, or invisible.
 class FocusOnIt extends StatefulWidget {
   const FocusOnIt({
     super.key,
@@ -17,17 +18,24 @@ class FocusOnIt extends StatefulWidget {
 
   final Widget child;
 
-  /// On FOCUS
+  /// Equivalent to `onPause()` on Android and `viewDidDisappear()` on iOS.
+  /// Triggered when the widget is unfocused after route transition or the widget paused from a focused state.
   final VoidCallback? onFocus;
 
+  /// Equivalent to `onResume()` on Android and `viewDidAppear()` on iOS.
+  /// Triggered when the widget is focused after route transition or the widget resumed from a paused state.
   final VoidCallback? onUnfocus;
 
+  /// Triggered when the app is resumed from a paused state.
   final VoidCallback? onVisibilityGained;
 
+  /// Triggered when the app is paused from a resumed state.
   final VoidCallback? onVisibilityLost;
 
+  /// Triggered when the widget is visible after route transition.
   final VoidCallback? onForegroundGained;
 
+  /// Triggered when the widget is no longer visible after route transition.
   final VoidCallback? onForegroundLost;
 
   @override
@@ -39,6 +47,7 @@ class _FocusOnItState extends State<FocusOnIt> with WidgetsBindingObserver {
   bool _visible = false;
   bool _foreground = true;
 
+  /// Provide support to Flutter 2 and above.
   T? _ambiguous<T>(T? value) => value;
 
   @override
@@ -58,6 +67,7 @@ class _FocusOnItState extends State<FocusOnIt> with WidgetsBindingObserver {
     _foregroundManager(state);
   }
 
+  /// Manages the foreground state.
   void _foregroundManager(AppLifecycleState state) {
     if (!_visible) return;
 
@@ -72,6 +82,7 @@ class _FocusOnItState extends State<FocusOnIt> with WidgetsBindingObserver {
     }
   }
 
+  /// Manages the visibility state.
   void _visibilityManager(double visibility) {
     if (!_foreground) return;
 
@@ -86,16 +97,22 @@ class _FocusOnItState extends State<FocusOnIt> with WidgetsBindingObserver {
     }
   }
 
+  /// Calls the [onFocus] callback.
   void _onFocus() => widget.onFocus?.call();
 
+  /// Calls the [onUnfocus] callback.
   void _onUnfocus() => widget.onUnfocus?.call();
 
+  /// Calls the [onVisibilityGained] callback.
   void _onVisibilityGained() => widget.onVisibilityGained?.call();
 
+  /// Calls the [onVisibilityLost] callback.
   void _onVisibilityLost() => widget.onVisibilityLost?.call();
 
+  /// Calls the [onForegroundGained] callback.
   void _onForegroundGained() => widget.onForegroundGained?.call();
 
+  /// Calls the [onForegroundLost] callback.
   void _onForegroundLost() => widget.onForegroundLost?.call();
 
   @override
