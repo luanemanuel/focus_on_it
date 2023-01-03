@@ -5,8 +5,9 @@ import 'package:visibility_detector/visibility_detector.dart';
 
 /// A widget that notifies when it is focused, unfocused, visible, or invisible.
 class FocusOnIt extends StatefulWidget {
+  /// A widget that notifies when a widget is focused or
+  /// unfocused and react to it.
   const FocusOnIt({
-    super.key,
     required this.child,
     this.onFocus,
     this.onUnfocus,
@@ -14,8 +15,10 @@ class FocusOnIt extends StatefulWidget {
     this.onVisibilityLost,
     this.onForegroundGained,
     this.onForegroundLost,
-  });
+    Key? key,
+  }) : super(key: key);
 
+  /// The widget below this widget in the tree.
   final Widget child;
 
   /// Equivalent to `onPause()` on Android and `viewDidDisappear()` on iOS.
