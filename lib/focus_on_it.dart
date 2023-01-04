@@ -21,14 +21,15 @@ class FocusOnIt extends StatefulWidget {
   /// The widget below this widget in the tree.
   final Widget child;
 
-  /// Equivalent to `onPause()` on Android and `viewDidDisappear()` on iOS.
-  /// Triggered when the widget is unfocused after route transition or the
-  /// widget paused from a focused state.
-  final VoidCallback? onFocus;
 
   /// Equivalent to `onResume()` on Android and `viewDidAppear()` on iOS.
   /// Triggered when the widget is focused after route transition or the widget
   /// resumed from a paused state.
+  final VoidCallback? onFocus;
+
+  /// Equivalent to `onPause()` on Android and `viewDidDisappear()` on iOS.
+  /// Triggered when the widget is unfocused after route transition or the
+  /// widget paused from a focused state.
   final VoidCallback? onUnfocus;
 
   /// Triggered when the app is resumed from a paused state.
