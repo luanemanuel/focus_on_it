@@ -21,7 +21,6 @@ class FocusOnIt extends StatefulWidget {
   /// The widget below this widget in the tree.
   final Widget child;
 
-
   /// Equivalent to `onResume()` on Android and `viewDidAppear()` on iOS.
   /// Triggered when the widget is focused after route transition or the widget
   /// resumed from a paused state.
