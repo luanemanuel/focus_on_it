@@ -1,6 +1,6 @@
 name: focus_on_it
 description: Get notified when a widget is focused or unfocused and react to it.
-version: 1.0.4
+version: 1.0.5
 repository: https://github.com/luanemanuel/focus_on_it/tree/master
 issue_tracker: https://github.com/luanemanuel/focus_on_it/issues
 

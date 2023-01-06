@@ -10,34 +10,59 @@
 	<a href="https://github.com/luanemanuel/focus_on_it/"><img src="https://img.shields.io/badge/platform-flutter-ff69b4.svg" alt="Flutter Platform Badge"></a>
 </p>
 
-A continuation of the [Focus Detector](https://pub.dev/packages/focus_detector) project which is not maintained anymore.
+Focus on It is a Dart library that allows you to get notified when a Flutter widget is focused or unfocused and react to it. 
 
-Get notified when a widget is focused or unfocused.
-
----
+It is a continuation of the [Focus Detector](https://pub.dev/packages/focus_detector) project, which is no longer maintained.
 
 ## About
 
-Similar to `onResume()`/`onPause()` on Android and `viewDidAppear()`/`viewDidDisappear()` on iOS, Focus On It gives you the ability to know when a widget is focused or unfocused and let you do something about it.
-
-Focus On It invoke callbacks when something happen to the widget focus. You can use it to get more control over your app and manage the events you might want, like:
+Similar to the onResume()/onPause() methods on Android and the viewDidAppear()/viewDidDisappear() methods on iOS, Focus on It lets you know when a Flutter widget is focused or unfocused and gives you the opportunity to do something about it. You can use callbacks to get more control over your app and manage the events you want, such as:
 
 - Pause a video when the user is not looking at it.
-- Stop a camera preview when the user is not looking at it and start it again when the user is looking at it.
-- Turn off a resource intensive feature when the user is not looking at it and turn it on again when the user is looking at it.
-- Sync data with API when user open a screen.
+- Stop a camera preview when the user is not looking at it and start it again when the user looks at it.
+- Turn off a resource-intensive feature when the user is not looking at it and turn it on again when the user looks at it.
+- Sync data with an API when the user opens a screen.
 - And much more!
+
+## Installation
+
+To install Focus on It, you can use either of the following methods:
+
+### Method 1: flutter pub add
+Use the flutter pub add command to install Focus on It:
+
+```dart
+flutter pub add focus_on_it
+```
+
+### Method 2: pubspec.yaml
+Alternatively, you can add the following line to your pubspec.yaml file:
+
+```dart
+dependencies:
+  focus_on_it: ^VERSION
+```
+
+Replace `VERSION` with the latest version of Focus on It. You can find the latest version on the [pub.dev page](https://pub.dev/packages/focus_on_it/).
+
+Then, run flutter pub get to install the library.
+
+Import the library into your code by adding the following line at the top of your file:
+
+```dart
+import 'package:focus_on_it/focus_on_it.dart';
+```
 
 ## Events
 
-Focus On It offers 6 events to help you manage your app:
+Focus on It offers 6 events to help you manage your app:
 
-- `onFocus`: Equivalent to `onResume()` on Android and `viewDidAppear()` on iOS. Triggered when the widget is focused after route transition or the widget resumed from a paused state.
-- `onUnfocus`: Equivalent to `onPause()` on Android and `viewDidDisappear()` on iOS. Triggered when the widget is unfocused after route transition or the widget paused from a focused state.
+- `onFocus`: Equivalent to `onResume()` on Android and `viewDidAppear()` on iOS. Triggered when the Flutter widget is focused after a route transition or when the widget is resumed from a paused state.
+- `onUnfocus`: Equivalent to `onPause()` on Android and `viewDidDisappear()` on iOS. Triggered when the Flutter widget is unfocused after a route transition or when the widget is paused from a focused state.
 - `onForegroundGained`: Triggered when the app is resumed from a paused state.
 - `onForegroundLost`: Triggered when the app is paused from a resumed state.
-- `onVisibilityGained`: Triggered when the widget is visible after route transition.
-- `onVisibilityLost`: Triggered when the widget is no longer visible after route transition.
+- `onVisibilityGained`: Triggered when the Flutter widget is visible after a route transition.
+- `onVisibilityLost`: Triggered when the Flutter widget is no longer visible after a route transition.
 
 ## Usage
 
@@ -74,13 +99,20 @@ Widget build(BuildContext context) =>
       child: const Placeholder(),
     );
 ```
-
 ## Example
 
-- [Focus On It Example](https://github.com/luanemanuel/focus_on_it/blob/develop/test/focus_on_it_test.dart)
+To see an example of how to use Focus on It, check out the following file in this repository:
 
-## Maintainers
+- [Focus On It Example](https://github.com/luanemanuel/focus_on_it/tree/master/example)
 
-- [Luan Emanuel](https://github.com/luanemanuel)
-- [Lucas Claros](https://github.com/lucasclaros)
+## Contributing
 
+We welcome contributions to the Focus on It project! If you would like to contribute, please feel free to reach out to the current maintainers for more information.
+
+## Issues
+
+If you encounter any issues while using Focus on It, please open a new issue in the [issue tracker](https://github.com/luanemanuel/focus_on_it/issues). Please include as much information as possible, such as the version of Focus on It you are using and steps to reproduce the issue.
+
+## License
+
+Focus on It is licensed under the MIT license. See [LICENSE](https://github.com/luanemanuel/focus_on_it/blob/master/LICENSE) for more information.
