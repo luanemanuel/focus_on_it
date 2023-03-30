@@ -1,3 +1,9 @@
+## 1.0.6
+
+#### Improvements:
+- Updated visibility_detector dependency to 0.4.0+2.
+- Updated example project dependencies.
+
 ## 1.0.5
 
 #### Documentation:
