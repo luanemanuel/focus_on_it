@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:focus_on_it/focus_on_it.dart';
 import 'package:logger/logger.dart';
@@ -35,6 +37,28 @@ class FocusOnItExample extends StatelessWidget {
         onVisibilityLost: () {
           /// Triggered when the widget is no longer visible after route transition.
           logger.i('Visibility Lost.');
+        },
+        onDetach: () {
+          logger.i('Detach.');
+        },
+        onExitRequested: () async {
+          logger.i('Exit Requested.');
+          return AppExitResponse.exit;
+        },
+        onHide: () {
+          logger.i('Hide.');
+        },
+        onInactive: () {
+          logger.i('Inactive.');
+        },
+        onRestart: () {
+          logger.i('Restart.');
+        },
+        onShow: () {
+          logger.i('Show.');
+        },
+        onStateChange: (oldState, newState) {
+          logger.i('State Change: $oldState -> $newState');
         },
         child: Material(
           child: Padding(
