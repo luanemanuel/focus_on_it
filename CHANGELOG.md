@@ -13,7 +13,7 @@
     - `onRestart`: Triggered when the app is restarted.
     - `onShow`: Triggered when the app's window becomes visible.
     - `onStateChange`: Callback for handling app lifecycle state changes, providing information about both the old and new app lifecycle states.
-- **Mobile Testing Fix**: Included a fix for mobile testing that disables the duration of the visibility detector scan when in test mode. For web testing, you can enable this fix by setting the environment variable `TEST` to `true` using the `--dart-define=TEST=true` flag when running the `flutter run` command.
+- **Testing Fix**: Included a fix for mobile testing that disables the duration of the visibility detector scan when in test mode. For web testing, you can enable this fix by setting the environment variable `TEST` to `true` using the `--dart-define=TEST=true` flag when running the `flutter run` command.
 
 ## 1.0.6
 
