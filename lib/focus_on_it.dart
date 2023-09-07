@@ -1,5 +1,6 @@
 library focus_on_it;
 
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -103,6 +104,16 @@ class _FocusOnItState extends State<FocusOnIt> with WidgetsBindingObserver {
       onStateChange: (state) =>
           widget.onStateChange?.call(_oldState, _newState ?? state),
     );
+
+    final isWebTest = const bool.fromEnvironment(
+      'TEST',
+      defaultValue: false,
+    );
+    final isFlutterTest = Platform.environment.containsKey('FLUTTER_TEST');
+
+    if (isWebTest || isFlutterTest) {
+      VisibilityDetectorController.instance.updateInterval = Duration.zero;
+    }
   }
 
   @override
