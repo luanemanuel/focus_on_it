@@ -3,7 +3,7 @@ library focus_on_it;
 import 'dart:io';
 import 'dart:ui';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 /// A widget that notifies when it is focused, unfocused, visible, or invisible.
