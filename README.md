@@ -63,6 +63,13 @@ Focus on It offers 6 events to help you manage your app:
 - `onForegroundLost`: Triggered when the app is paused from a resumed state.
 - `onVisibilityGained`: Triggered when the Flutter widget is visible after a route transition.
 - `onVisibilityLost`: Triggered when the Flutter widget is no longer visible after a route transition.
+- `onDetach`: Triggered when the app is detached from the view hierarchy.
+- `onExitRequested`: Triggered when an exit request is made for the app.
+- `onHide`: Triggered when the app's window becomes hidden.
+- `onInactive`: Triggered when the app enters an inactive state.
+- `onRestart`: Triggered when the app is restarted.
+- `onShow`: Triggered when the app's window becomes visible.
+- `onStateChange`: Callback for handling app lifecycle state changes, providing information about both the old and new app lifecycle states.
 
 ## Usage
 
@@ -96,9 +103,54 @@ Widget build(BuildContext context) =>
         /// Triggered when the widget is no longer visible after route transition.
         logger.i('Visibility Lost.');
       },
+      onDetach: () {
+        /// Triggered when the widget is detached from the widget tree.
+        logger.i('Detach.');
+      },
+      onExitRequested: () async {
+        /// Triggered when the app is requested to exit.
+        logger.i('Exit Requested.');
+        return AppExitResponse.exit;
+      },
+      onHide: () {
+        /// Triggered when the app is hidden.
+        logger.i('Hide.');
+      },
+      onInactive: () {
+        /// Triggered when the app is inactive.
+        logger.i('Inactive.');
+      },
+      onRestart: () {
+        /// Triggered when the app is restarted.
+        logger.i('Restart.');
+      },
+      onShow: () {
+        /// Triggered when the app is shown.
+        logger.i('Show.');
+      },
+      onStateChange: (oldState, newState) {
+        /// Triggered when the app state changes.
+        logger.i('State Change: $oldState -> $newState');
+      },
       child: const Placeholder(),
     );
 ```
+## Testing
+
+Please note that enabling the test environment variable (`TEST=true`) is only necessary when testing in a web environment. For iOS and Android, this configuration is automatically handled.
+
+### Web Testing (if applicable)
+
+1. **Set the test environment variable:**
+    - To enable the testing fix in web environments, you can set the `TEST` environment variable to `true` when running the `flutter run` command. Use the following command:
+
+      ```
+      flutter test --dart-define=TEST=true {file}
+      ```
+
+2. **Run your tests**:
+    - Now you can run your tests as usual to ensure that the behavior of the `FocusOnIt` package is as expected.
+
 ## Example
 
 To see an example of how to use Focus on It, check out the following file in this repository:

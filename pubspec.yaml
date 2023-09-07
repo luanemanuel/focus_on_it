@@ -1,11 +1,11 @@
 name: focus_on_it
 description: Get notified when a widget is focused or unfocused and react to it.
-version: 1.0.6
+version: 2.0.0
 repository: https://github.com/luanemanuel/focus_on_it/tree/master
 issue_tracker: https://github.com/luanemanuel/focus_on_it/issues
 
 environment:
-  sdk: '>=2.12.0 <3.0.0'
+  sdk: '>=3.1.0 <4.0.0'
 
 dependencies:
   flutter:

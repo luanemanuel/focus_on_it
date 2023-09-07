@@ -1,3 +1,20 @@
+## 2.0.0
+
+### BREAKING CHANGES:
+- **Updated Dart SDK Version**: The library now requires a minimum Dart SDK version of 3.1.0 due to the use of the new `AppLifecycleListener` and its associated features. As a result, this update makes the library incompatible with Flutter versions below 3.13.0.
+
+#### Improvements:
+- **Enhanced Lifecycle Event Handling**: Improved the detection of app resume and pause events by implementing the new `AppLifecycleListener`.
+- **New Callbacks**: Introduced several new callback methods to provide developers with more flexibility:
+    - `onDetach`: Triggered when the app is detached from the view hierarchy.
+    - `onExitRequested`: Triggered when an exit request is made for the app.
+    - `onHide`: Triggered when the app's window becomes hidden.
+    - `onInactive`: Triggered when the app enters an inactive state.
+    - `onRestart`: Triggered when the app is restarted.
+    - `onShow`: Triggered when the app's window becomes visible.
+    - `onStateChange`: Callback for handling app lifecycle state changes, providing information about both the old and new app lifecycle states.
+- **Testing Fix**: Included a fix for mobile testing that disables the duration of the visibility detector scan when in test mode. For web testing, you can enable this fix by setting the environment variable `TEST` to `true` using the `--dart-define=TEST=true` flag when running the `flutter test` command.
+
 ## 1.0.6
 
 #### Improvements:
