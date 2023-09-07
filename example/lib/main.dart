@@ -39,25 +39,32 @@ class FocusOnItExample extends StatelessWidget {
           logger.i('Visibility Lost.');
         },
         onDetach: () {
+          /// Triggered when the widget is detached from the widget tree.
           logger.i('Detach.');
         },
         onExitRequested: () async {
+          /// Triggered when the app is requested to exit.
           logger.i('Exit Requested.');
           return AppExitResponse.exit;
         },
         onHide: () {
+          /// Triggered when the app is hidden.
           logger.i('Hide.');
         },
         onInactive: () {
+          /// Triggered when the app is inactive.
           logger.i('Inactive.');
         },
         onRestart: () {
+          /// Triggered when the app is restarted.
           logger.i('Restart.');
         },
         onShow: () {
+          /// Triggered when the app is shown.
           logger.i('Show.');
         },
         onStateChange: (oldState, newState) {
+          /// Triggered when the app state changes.
           logger.i('State Change: $oldState -> $newState');
         },
         child: Material(
