@@ -1,5 +1,7 @@
 library focus_on_it;
 
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
@@ -9,17 +11,29 @@ class FocusOnIt extends StatefulWidget {
   /// unfocused and react to it.
   const FocusOnIt({
     required this.child,
+    this.focusKey,
     this.onFocus,
     this.onUnfocus,
     this.onVisibilityGained,
     this.onVisibilityLost,
     this.onForegroundGained,
     this.onForegroundLost,
+    this.onDetach,
+    this.onExitRequested,
+    this.onHide,
+    this.onInactive,
+    this.onRestart,
+    this.onShow,
+    this.onStateChange,
     Key? key,
   }) : super(key: key);
 
   /// The widget below this widget in the tree.
   final Widget child;
+
+  /// The key to be used by the widget responsible for detect the
+  /// visibility of the widget.
+  final GlobalKey? focusKey;
 
   /// Equivalent to `onResume()` on Android and `viewDidAppear()` on iOS.
   /// Triggered when the widget is focused after route transition or the widget
@@ -43,45 +57,82 @@ class FocusOnIt extends StatefulWidget {
   /// Triggered when the widget is no longer visible after route transition.
   final VoidCallback? onForegroundLost;
 
+  final VoidCallback? onDetach;
+
+  final Future<AppExitResponse> Function()? onExitRequested;
+
+  final VoidCallback? onHide;
+
+  final VoidCallback? onInactive;
+
+  final VoidCallback? onRestart;
+
+  final VoidCallback? onShow;
+
+  final void Function(AppLifecycleState? oldState, AppLifecycleState newState)?
+      onStateChange;
+
   @override
   State<FocusOnIt> createState() => _FocusOnItState();
 }
 
 class _FocusOnItState extends State<FocusOnIt> with WidgetsBindingObserver {
-  final _focusKey = GlobalKey();
-  bool _visible = false;
-  bool _foreground = true;
+  late final GlobalKey _focusKey;
+  late final AppLifecycleListener _appLifecycleListener;
 
-  /// Provide support to Flutter 2 and above.
-  T? _ambiguous<T>(T? value) => value;
+  bool _isVisible = false;
+  bool _isOnForeground = true;
+  AppLifecycleState? _oldState;
+  AppLifecycleState? _newState;
 
   @override
   void initState() {
     super.initState();
-    _ambiguous(WidgetsBinding.instance)?.addObserver(this);
+    WidgetsBinding.instance.addObserver(this);
+    _focusKey = widget.focusKey ?? GlobalKey();
+    _appLifecycleListener = AppLifecycleListener(
+      binding: WidgetsBinding.instance,
+      onResume: _onResumed,
+      onPause: _onPaused,
+      onDetach: widget.onDetach,
+      onExitRequested: widget.onExitRequested,
+      onHide: widget.onHide,
+      onInactive: widget.onInactive,
+      onRestart: widget.onRestart,
+      onShow: widget.onShow,
+      onStateChange: (state) =>
+          widget.onStateChange?.call(_oldState, _newState ?? state),
+    );
   }
 
   @override
   void dispose() {
-    _ambiguous(WidgetsBinding.instance)?.removeObserver(this);
+    WidgetsBinding.instance.removeObserver(this);
+    _appLifecycleListener.dispose();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    _foregroundManager(state);
+    _oldState = _newState;
+    _newState = state;
   }
 
-  /// Manages the foreground state.
-  void _foregroundManager(AppLifecycleState state) {
-    if (!_visible) return;
+  void _onResumed() {
+    if (!_isVisible) return;
 
-    if (state == AppLifecycleState.resumed && !_foreground) {
-      _foreground = true;
+    if (!_isOnForeground) {
+      _isOnForeground = true;
       _onFocus();
       _onForegroundGained();
-    } else if (state == AppLifecycleState.paused && _foreground) {
-      _foreground = false;
+    }
+  }
+
+  void _onPaused() {
+    if (!_isVisible) return;
+
+    if (_isOnForeground) {
+      _isOnForeground = false;
       _onUnfocus();
       _onForegroundLost();
     }
@@ -89,14 +140,14 @@ class _FocusOnItState extends State<FocusOnIt> with WidgetsBindingObserver {
 
   /// Manages the visibility state.
   void _visibilityManager(double visibility) {
-    if (!_foreground) return;
+    if (!_isOnForeground) return;
 
-    if (!_visible && visibility == 1) {
-      _visible = true;
+    if (!_isVisible && visibility == 1) {
+      _isVisible = true;
       _onFocus();
       _onVisibilityGained();
-    } else if (_visible && visibility == 0) {
-      _visible = false;
+    } else if (_isVisible && visibility == 0) {
+      _isVisible = false;
       _onUnfocus();
       _onVisibilityLost();
     }
