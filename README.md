@@ -55,7 +55,7 @@ import 'package:focus_on_it/focus_on_it.dart';
 
 ## Events
 
-Focus on It offers 6 events to help you manage your app:
+Focus on It offers 13 events to help you manage your app:
 
 - `onFocus`: Equivalent to `onResume()` on Android and `viewDidAppear()` on iOS. Triggered when the Flutter widget is focused after a route transition or when the widget is resumed from a paused state.
 - `onUnfocus`: Equivalent to `onPause()` on Android and `viewDidDisappear()` on iOS. Triggered when the Flutter widget is unfocused after a route transition or when the widget is paused from a focused state.
