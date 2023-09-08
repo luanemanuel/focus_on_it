@@ -1,3 +1,8 @@
+## 2.0.0+1
+
+#### Documentation:
+- Minor fixes to the README.
+
 ## 2.0.0
 
 ### BREAKING CHANGES:
