@@ -1,3 +1,8 @@
+## 2.0.1
+
+#### Bug Fixes:
+- Changed `dart:io` import to `universal_io` package to fix compatibility with Flutter Web.
+
 ## 2.0.0+1
 
 #### Documentation:
@@ -33,7 +38,7 @@
 - Added usage examples and sample code to the "Usage" section.
 - Added a "Contributing" section with instructions for those who want to contribute to the project.
 - Added a "License" section with information about the MIT license.
-- Added a "Installation" section with instructions for installing the library.
+- Added an "Installation" section with instructions for installing the library.
 - Fixed a broken link in the "Example" section.
 
 #### Improvements:
