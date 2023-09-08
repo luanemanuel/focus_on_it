@@ -1,3 +1,8 @@
+## 2.0.1
+
+#### Bug Fixes:
+- Changed `dart:io` import to `universal_io` package to fix compatibility with Flutter Web.
+
 ## 2.0.0+1
 
 #### Documentation:
