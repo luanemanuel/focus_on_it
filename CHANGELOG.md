@@ -1,3 +1,24 @@
+## 3.0.0-dev.1
+
+### BREAKING CHANGES
+- **Zero external dependencies:** removed `visibility_detector` and `universal_io` completely.
+- **Removed `focusKey`:** widget identity uses standard Flutter keys/state instead of a separate `Key` parameter. Run `dart fix --apply` to remove existing `focusKey` arguments automatically (via `lib/fix_data.yaml`).
+- **Grouped lifecycle callbacks:** `onDetach`, `onExitRequested`, `onHide`, `onInactive`, `onRestart`, `onShow`, and `onStateChange` moved under `appLifecycle: FocusAppLifecycleCallbacks(...)`.
+- **Dialogs unfocus by default:** `includeDialogs` defaults to `true`, unfocusing widgets behind translucent dialogs and bottom sheets (pass `includeDialogs: false` for 2.x behavior).
+- **Updated constructor defaults & options:** added `controller`, `triggerOnInit` (default `true`), `notifyOnDispose` (default `false`), and `viewport: FocusViewportConfig(...)`. See `MIGRATION.md` for details.
+
+### Features
+- **Hybrid engine:** O(1) fast path driven by `ModalRoute`, `TickerMode`, `IndexedStack`/`Offstage`, and a shared `AppLifecycleListener` (`SharedLifecycleHub`).
+- **Opt-in viewport visibility (`FocusViewportConfig`):** batched per-frame measurement via `ViewportVisibilityHub` supporting `threshold`, `minFocusDuration` dwell timer, and `onVisibilityChanged` with `FocusVisibilityInfo`.
+- **Reactive state reading:** added `FocusOnItController` (`ValueNotifier<FocusState>`), `FocusOnIt.of(context)`, `FocusOnIt.maybeOf(context)`, `FocusOnIt.isFocusedOf(context)`, and `FocusOnIt.maybeIsFocusedOf(context)` powered by `InheritedModel`.
+- **Zero test workarounds:** removed the 500ms timer and `--dart-define=TEST=true` requirement.
+
+### Performance & Tooling
+- Zero unnecessary subtree rebuilds when no descendant subscribes to `FocusOnIt.of` / `isFocusedOf`.
+- Shared `AppLifecycleListener` and batched `ViewportVisibilityHub` with per-frame `Scrollable` rect caching.
+- Upgraded static analysis to `package:very_good_analysis` with strict casts, inference, and raw types.
+- Added automated `dart fix` rules, unit/widget test suite, modular `example/` app, and isolated benchmark suite.
+
 ## 2.0.1
 
 #### Bug Fixes:

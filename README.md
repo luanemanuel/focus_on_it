@@ -1,170 +1,159 @@
 <p align="center">
-<img src="https://github.com/luanemanuel/focus_on_it/blob/master/assets/focus_on_it.png?raw=true" width="350" alt="Flutter Focus On It Package"/>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/focus_on_it_dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="assets/focus_on_it_light.png">
+    <img src="assets/focus_on_it_light.png" width="320" alt="Focus on It">
+  </picture>
 </p>
 
 <p align="center">
-	<a href="https://pub.dev/packages/focus_on_it"><img src="https://img.shields.io/pub/v/focus_on_it.svg" alt="Pub.dev Badge"></a>
-	<a href="https://github.com/luanemanuel/focus_on_it/actions"><img src="https://github.com/luanemanuel/focus_on_it/workflows/test/badge.svg" alt="GitHub Build Badge"></a>
-	<a href="https://github.com/tenhobi/effective_dart"><img src="https://img.shields.io/badge/style-effective_dart-40c4ff.svg" alt="Effective Dart Badge"></a>
-	<a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-purple.svg" alt="MIT License Badge"></a>
-	<a href="https://github.com/luanemanuel/focus_on_it/"><img src="https://img.shields.io/badge/platform-flutter-ff69b4.svg" alt="Flutter Platform Badge"></a>
+  <a href="https://pub.dev/packages/focus_on_it"><img src="https://img.shields.io/pub/v/focus_on_it.svg" alt="Pub.dev Version"></a>
+  <a href="https://github.com/luanemanuel/focus_on_it/actions"><img src="https://github.com/luanemanuel/focus_on_it/actions/workflows/test.yml/badge.svg" alt="Build Status"></a>
+  <a href="https://pub.dev/packages/very_good_analysis"><img src="https://img.shields.io/badge/style-very_good_analysis-B22C89.svg" alt="style: very good analysis"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-purple.svg" alt="MIT License"></a>
+  <a href="https://flutter.dev"><img src="https://img.shields.io/badge/platform-flutter-02569B.svg" alt="Flutter Platform"></a>
 </p>
 
-Focus on It is a Dart library that allows you to get notified when a Flutter widget is focused or unfocused and react to it. 
+Focus on It lets you know when a Flutter widget actually has the user's attention.
 
-It is a continuation of the [Focus Detector](https://pub.dev/packages/focus_detector) project, which is no longer maintained.
+Wrap any screen or widget to pause videos, mute audio, stop camera previews, or sync state the moment someone switches routes, opens a dialog, changes tabs, scrolls past an item, or sends the app to the background. It has zero external dependencies and runs straight on Flutter.
 
-## About
+## Install
 
-Similar to the onResume()/onPause() methods on Android and the viewDidAppear()/viewDidDisappear() methods on iOS, Focus on It lets you know when a Flutter widget is focused or unfocused and gives you the opportunity to do something about it. You can use callbacks to get more control over your app and manage the events you want, such as:
+Add it with Flutter:
 
-- Pause a video when the user is not looking at it.
-- Stop a camera preview when the user is not looking at it and start it again when the user looks at it.
-- Turn off a resource-intensive feature when the user is not looking at it and turn it on again when the user looks at it.
-- Sync data with an API when the user opens a screen.
-- And much more!
-
-## Installation
-
-To install Focus on It, you can use either of the following methods:
-
-### Method 1: flutter pub add
-Use the flutter pub add command to install Focus on It:
-
-```dart
-flutter pub add focus_on_it
+```sh
+flutter pub add focus_on_it:^3.0.0-dev.1
 ```
 
-### Method 2: pubspec.yaml
-Alternatively, you can add the following line to your pubspec.yaml file:
+Or add it to your `pubspec.yaml`:
 
-```dart
+```yaml
 dependencies:
-  focus_on_it: ^VERSION
+  focus_on_it: ^3.0.0-dev.1
 ```
 
-Replace `VERSION` with the latest version of Focus on It. You can find the latest version on the [pub.dev page](https://pub.dev/packages/focus_on_it/).
-
-Then, run flutter pub get to install the library.
-
-Import the library into your code by adding the following line at the top of your file:
+Then import it:
 
 ```dart
 import 'package:focus_on_it/focus_on_it.dart';
 ```
 
-## Events
+## Basic usage
 
-Focus on It offers 13 events to help you manage your app:
-
-- `onFocus`: Equivalent to `onResume()` on Android and `viewDidAppear()` on iOS. Triggered when the Flutter widget is focused after a route transition or when the widget is resumed from a paused state.
-- `onUnfocus`: Equivalent to `onPause()` on Android and `viewDidDisappear()` on iOS. Triggered when the Flutter widget is unfocused after a route transition or when the widget is paused from a focused state.
-- `onForegroundGained`: Triggered when the app is resumed from a paused state.
-- `onForegroundLost`: Triggered when the app is paused from a resumed state.
-- `onVisibilityGained`: Triggered when the Flutter widget is visible after a route transition.
-- `onVisibilityLost`: Triggered when the Flutter widget is no longer visible after a route transition.
-- `onDetach`: Triggered when the app is detached from the view hierarchy.
-- `onExitRequested`: Triggered when an exit request is made for the app.
-- `onHide`: Triggered when the app's window becomes hidden.
-- `onInactive`: Triggered when the app enters an inactive state.
-- `onRestart`: Triggered when the app is restarted.
-- `onShow`: Triggered when the app's window becomes visible.
-- `onStateChange`: Callback for handling app lifecycle state changes, providing information about both the old and new app lifecycle states.
-
-## Usage
+Wrap the widget you want to watch with `FocusOnIt`:
 
 ```dart
 @override
-Widget build(BuildContext context) =>
-    FocusOnIt(
-      onFocus: () {
-        /// Equivalent to `onResume()` on Android and `viewDidAppear()` on iOS. 
-        /// Triggered when the widget is focused after route transition or the widget resumed from a paused state.
-        logger.i('Focus Gained.');
-      },
-      onUnfocus: () {
-        /// Equivalent to `onPause()` on Android and `viewDidDisappear()` on iOS. 
-        /// Triggered when the widget is unfocused after route transition or the widget paused from a focused state.
-        logger.i('Focus Lost.');
-      },
-      onForegroundGained: () {
-        /// Triggered when the app is resumed from a paused state.
-        logger.i('Foreground Gained.');
-      },
-      onForegroundLost: () {
-        /// Triggered when the app is paused from a resumed state.
-        logger.i('Foreground Lost.');
-      },
-      onVisibilityGained: () {
-        /// Triggered when the widget is visible after route transition.
-        logger.i('Visibility Gained.');
-      },
-      onVisibilityLost: () {
-        /// Triggered when the widget is no longer visible after route transition.
-        logger.i('Visibility Lost.');
-      },
-      onDetach: () {
-        /// Triggered when the widget is detached from the widget tree.
-        logger.i('Detach.');
-      },
-      onExitRequested: () async {
-        /// Triggered when the app is requested to exit.
-        logger.i('Exit Requested.');
-        return AppExitResponse.exit;
-      },
-      onHide: () {
-        /// Triggered when the app is hidden.
-        logger.i('Hide.');
-      },
-      onInactive: () {
-        /// Triggered when the app is inactive.
-        logger.i('Inactive.');
-      },
-      onRestart: () {
-        /// Triggered when the app is restarted.
-        logger.i('Restart.');
-      },
-      onShow: () {
-        /// Triggered when the app is shown.
-        logger.i('Show.');
-      },
-      onStateChange: (oldState, newState) {
-        /// Triggered when the app state changes.
-        logger.i('State Change: $oldState -> $newState');
-      },
-      child: const Placeholder(),
-    );
+Widget build(BuildContext context) {
+  return FocusOnIt(
+    onFocus: () => videoController.play(),
+    onUnfocus: () => videoController.pause(),
+    onVisibilityGained: () => ticker.start(),
+    onVisibilityLost: () => ticker.stop(),
+    onForegroundGained: () => socket.reconnect(),
+    onForegroundLost: () => analytics.flush(),
+    child: const VideoPlayerView(),
+  );
+}
 ```
-## Testing
 
-Please note that enabling the test environment variable (`TEST=true`) is only necessary when testing in a web environment. For iOS and Android, this configuration is automatically handled.
+Opening a dialog or bottom sheet unfocuses the screen behind it and focuses it again when dismissed. If you only want full opaque route changes to unfocus, pass `includeDialogs: false`. `IndexedStack`, `Offstage`, and `TickerMode` transitions are handled automatically too.
 
-### Web Testing (if applicable)
+## Scrollable feeds & viewports
 
-1. **Set the test environment variable:**
-    - To enable the testing fix in web environments, you can set the `TEST` environment variable to `true` when running the `flutter run` command. Use the following command:
+If your widget sits inside a `ListView`, `PageView`, or `CustomScrollView` and should react as it scrolls in and out of view, pass `viewport`:
 
-      ```
-      flutter test --dart-define=TEST=true {file}
-      ```
+```dart
+FocusOnIt(
+  onFocus: () => playPreview(),
+  onUnfocus: () => pausePreview(),
+  viewport: FocusViewportConfig(
+    threshold: 0.6,
+    minFocusDuration: const Duration(milliseconds: 250),
+    onVisibilityChanged: (info) {
+      debugPrint('visible=${info.visibleFraction}');
+    },
+  ),
+  child: const FeedVideoCard(),
+)
+```
 
-2. **Run your tests**:
-    - Now you can run your tests as usual to ensure that the behavior of the `FocusOnIt` package is as expected.
+`threshold` sets the minimum visible fraction in `[0.0, 1.0]` before the widget counts as visible (defaults to `0.5`, and still triggers even when a widget is taller than the screen). `minFocusDuration` waits for the widget to stay above `threshold` for that long before firing `onFocus`, which helps ignore quick flings.
+
+## Reading focus state
+
+Need the focus state outside a callback? Attach a `FocusOnItController`, or read it directly inside child widgets:
+
+```dart
+final controller = FocusOnItController();
+
+FocusOnIt(
+  controller: controller,
+  child: Builder(
+    builder: (context) {
+      final isFocused = FocusOnIt.isFocusedOf(context);
+      return StatusIndicator(active: isFocused);
+    },
+  ),
+);
+```
+
+- `FocusOnIt.isFocusedOf(context)` only rebuilds that child when focus actually flips.
+- `FocusOnIt.of(context)` gives you the full `FocusState` (`isFocused`, `isVisible`, `isInForeground`, `visibleFraction`).
+- `FocusOnItController` extends `ValueNotifier<FocusState>`, so you can listen to it or bind it to `ValueListenableBuilder`.
+
+## App lifecycle hooks
+
+If you also want window or exit hooks from `AppLifecycleListener`, pass `appLifecycle`:
+
+```dart
+FocusOnIt(
+  onFocus: () {},
+  onUnfocus: () {},
+  appLifecycle: FocusAppLifecycleCallbacks(
+    onHide: () => saveDraft(),
+    onInactive: () => muteAudio(),
+    onRestart: () => refreshSession(),
+    onExitRequested: () async => AppExitResponse.exit,
+    onStateChange: (oldState, newState) {
+      debugPrint('$oldState -> $newState');
+    },
+  ),
+  child: const EditorScreen(),
+)
+```
+
+All `FocusOnIt` widgets in the same app share a single `AppLifecycleListener` underneath, only creating a separate one if a widget sets `onExitRequested`.
+
+## Benchmarks
+
+Each package runs in its own isolated test project with warm-up rounds and plain `SizedBox` trees so layout noise doesn't get in the way.
+
+<p align="center">
+  <img src="assets/benchmarks/detection_speed.png" alt="Focus Detection Speed & Dialog Coverage">
+</p>
+
+<p align="center">
+  <img src="assets/benchmarks/runtime_performance.png" alt="Runtime Build & Scroll Performance">
+</p>
+
+By default, Focus on It skips viewport math completely (`Fast Path`) and triggers on the next frame after a route or dialog transition, keeping scroll frames light. Turning on `viewport` enables per-frame scroll intersection checks only for the widgets that ask for it.
+
+Full runner setup and raw numbers live in [benchmark/README.md](benchmark/README.md).
+
+## Upgrading from 2.x
+
+Run `dart fix --apply` to clean up removed parameters automatically, and check [MIGRATION.md](MIGRATION.md) for the short list of API updates.
 
 ## Example
 
-To see an example of how to use Focus on It, check out the following file in this repository:
+The [example](example/) app includes three small demos covering route and dialog focus, scrollable viewports, and `IndexedStack` tabs with `FocusOnIt.isFocusedOf(context)`.
 
-- [Focus On It Example](https://github.com/luanemanuel/focus_on_it/tree/master/example)
+## Contributing & issues
 
-## Contributing
-
-We welcome contributions to the Focus on It project! If you would like to contribute, please feel free to reach out to the current maintainers for more information.
-
-## Issues
-
-If you encounter any issues while using Focus on It, please open a new issue in the [issue tracker](https://github.com/luanemanuel/focus_on_it/issues). Please include as much information as possible, such as the version of Focus on It you are using and steps to reproduce the issue.
+Found a bug or want to pitch an improvement? Open an issue or pull request on [GitHub](https://github.com/luanemanuel/focus_on_it/issues). Keep code formatted (`dart format`), clean under `flutter analyze --fatal-infos`, and covered by tests.
 
 ## License
 
-Focus on It is licensed under the MIT license. See [LICENSE](https://github.com/luanemanuel/focus_on_it/blob/master/LICENSE) for more information.
+MIT — see [LICENSE](LICENSE).
