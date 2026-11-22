@@ -1,18 +1,18 @@
 name: focus_on_it_example
-description: A new Flutter module project.
+description: Example application demonstrating focus_on_it 3.0.0 features.
 publish_to: none
 
-version: 1.0.1
+version: 2.0.0
 
 environment:
   sdk: '>=3.1.0 <4.0.0'
+  flutter: '>=3.13.0'
 
 dependencies:
   flutter:
     sdk: flutter
   focus_on_it:
     path: ../
-  logger: ^2.0.2
 
 dev_dependencies:
   flutter_test:

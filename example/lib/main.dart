@@ -1,136 +1,72 @@
-import 'dart:ui';
-
 // ignore: deprecated_member_use
 import 'package:flutter/material.dart';
-import 'package:focus_on_it/focus_on_it.dart';
-import 'package:logger/logger.dart';
-
-class FocusOnItExample extends StatelessWidget {
-  const FocusOnItExample({Key? key})
-      : super(
-          key: key,
-        );
-
-  @override
-  Widget build(BuildContext context) => FocusOnIt(
-        onFocus: () {
-          /// Equivalent to `onResume()` on Android and `viewDidAppear()` on iOS.
-          /// Triggered when the widget is focused after route transition or the widget resumed from a paused state.
-          logger.i('Focus Gained.');
-        },
-        onUnfocus: () {
-          /// Equivalent to `onPause()` on Android and `viewDidDisappear()` on iOS.
-          /// Triggered when the widget is unfocused after route transition or the widget paused from a focused state.
-          logger.i('Focus Lost.');
-        },
-        onForegroundGained: () {
-          /// Triggered when the app is resumed from a paused state.
-          logger.i('Foreground Gained.');
-        },
-        onForegroundLost: () {
-          /// Triggered when the app is paused from a resumed state.
-          logger.i('Foreground Lost.');
-        },
-        onVisibilityGained: () {
-          /// Triggered when the widget is visible after route transition.
-          logger.i('Visibility Gained.');
-        },
-        onVisibilityLost: () {
-          /// Triggered when the widget is no longer visible after route transition.
-          logger.i('Visibility Lost.');
-        },
-        appLifecycle: FocusAppLifecycleCallbacks(
-          onDetach: () {
-            logger.i('Detach.');
-          },
-          onExitRequested: () async {
-            logger.i('Exit Requested.');
-            return AppExitResponse.exit;
-          },
-          onHide: () {
-            logger.i('Hide.');
-          },
-          onInactive: () {
-            logger.i('Inactive.');
-          },
-          onRestart: () {
-            logger.i('Restart.');
-          },
-          onShow: () {
-            logger.i('Show.');
-          },
-          onStateChange: (oldState, newState) {
-            logger.i('State Change: $oldState -> $newState');
-          },
-        ),
-        child: Material(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  'Send the app to the background or push another page and '
-                  'watch the console.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 20,
-                  ),
-                ),
-                const SizedBox(
-                  height: 20,
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    final route = MaterialPageRoute<void>(
-                      builder: (_) => const TestPage(),
-                    );
-                    Navigator.of(context).push<void>(route);
-                  },
-                  child: const Text(
-                    'PUSH ANOTHER PAGE',
-                  ),
-                )
-              ],
-            ),
-          ),
-        ),
-      );
-}
-
-class TestPage extends StatelessWidget {
-  const TestPage({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(),
-        body: const Padding(
-          padding: EdgeInsets.all(16),
-          child: Center(
-            child: Text(
-              'Look at the console and return to the first screen.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 20,
-              ),
-            ),
-          ),
-        ),
-      );
-}
-
-Logger logger = Logger(
-  printer: PrettyPrinter(
-    methodCount: 0,
-    printTime: false,
-  ),
-);
+import 'package:focus_on_it_example/examples/indexed_stack_tabs_example.dart';
+import 'package:focus_on_it_example/examples/route_lifecycle_example.dart';
+import 'package:focus_on_it_example/examples/viewport_feed_example.dart';
 
 void main() {
-  runApp(
-    const MaterialApp(
+  runApp(const FocusOnItExampleApp());
+}
+
+class FocusOnItExampleApp extends StatelessWidget {
+  const FocusOnItExampleApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: FocusOnItExample(),
-    ),
-  );
+      title: 'Focus on It Examples',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF0A66C2),
+        ),
+        useMaterial3: true,
+      ),
+      home: const _ExampleListPage(),
+    );
+  }
+}
+
+class _ExampleListPage extends StatelessWidget {
+  const _ExampleListPage();
+
+  @override
+  Widget build(BuildContext context) {
+    final examples = [
+      (
+        title: 'Route, Dialog & App Lifecycle',
+        subtitle: 'Navigator push/pop, dialogs, sheets, and foreground events.',
+        builder: (_) => const RouteLifecycleExample(),
+      ),
+      (
+        title: 'Viewport Feed Visibility',
+        subtitle: 'ListView cards using threshold and minFocusDuration.',
+        builder: (_) => const ViewportFeedExample(),
+      ),
+      (
+        title: 'IndexedStack Tabs',
+        subtitle: 'Automatic focus switching across IndexedStack tabs.',
+        builder: (_) => const IndexedStackTabsExample(),
+      ),
+    ];
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Focus on It 3.0 Examples')),
+      body: ListView.separated(
+        itemCount: examples.length,
+        separatorBuilder: (_, __) => const Divider(height: 1),
+        itemBuilder: (context, index) {
+          final item = examples[index];
+          return ListTile(
+            title: Text(item.title),
+            subtitle: Text(item.subtitle),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push<void>(
+              MaterialPageRoute<void>(builder: item.builder),
+            ),
+          );
+        },
+      ),
+    );
+  }
 }
