@@ -1,0 +1,11 @@
+version: 1
+transforms:
+  - title: 'Remove deprecated focusKey parameter'
+    date: 2026-11-22
+    element:
+      uris: ['focus_on_it.dart']
+      constructor: ''
+      inClass: 'FocusOnIt'
+    changes:
+      - kind: 'removeParameter'
+        name: 'focusKey'
