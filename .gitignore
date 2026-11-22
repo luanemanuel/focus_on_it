@@ -34,3 +34,12 @@ build/
 
 # Coverage
 coverage/
+
+# Benchmark artifacts
+benchmark/.dart_tool/
+benchmark/build/
+benchmark/.venv/
+benchmark/v2_runner/.dart_tool/
+benchmark/v2_runner/build/
+benchmark/v1_runner/.dart_tool/
+benchmark/v1_runner/build/
