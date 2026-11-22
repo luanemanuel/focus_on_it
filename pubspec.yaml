@@ -1,14 +1,27 @@
 name: focus_on_it
-description: Get notified when a widget is focused or unfocused and react to it.
-version: 2.0.1
-repository: https://github.com/luanemanuel/focus_on_it/tree/master
+description: Zero-dependency Flutter package to detect widget focus, route visibility, viewport visibility, and app lifecycle changes with frame-accurate precision.
+version: 3.0.0-dev.1
+repository: https://github.com/luanemanuel/focus_on_it
 issue_tracker: https://github.com/luanemanuel/focus_on_it/issues
+
+topics:
+  - focus
+  - lifecycle
+  - visibility
+  - widgets
+  - navigation
 
 environment:
   sdk: '>=3.1.0 <4.0.0'
+  flutter: '>=3.13.0'
 
 dependencies:
   flutter:
     sdk: flutter
   universal_io: ^2.2.2
   visibility_detector: ^0.4.0+2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  very_good_analysis: ^7.0.0
