@@ -42,89 +42,19 @@ Map<String, double> _summarize(List<double> samples, {required int decimals}) {
   };
 }
 
-Future<List<double>> _measureScrollFrames({
-  required WidgetTester tester,
-  required String prefix,
-  required int count,
-  required int warmupFrames,
-  required int sampleFrames,
-}) async {
-  VisibilityDetectorController.instance.updateInterval = Duration.zero;
-  final scrollController = ScrollController();
-  var tick = 0;
-  late StateSetter setHostState;
-
-  await tester.pumpWidget(
-    Directionality(
-      textDirection: TextDirection.ltr,
-      child: StatefulBuilder(
-        builder: (context, setState) {
-          setHostState = setState;
-          return SizedBox(
-            width: 400,
-            height: 600,
-            child: SingleChildScrollView(
-              controller: scrollController,
-              child: Column(
-                children: List.generate(
-                  count,
-                  (index) => FocusDetector(
-                    key: ValueKey('${prefix}_${count}_$index'),
-                    onFocusGained: () {},
-                    onFocusLost: () {},
-                    child: SizedBox(
-                      width: 400,
-                      height: 40,
-                      child: Text('Item $index ($tick)'),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    ),
-  );
-  await tester.pump();
-
-  for (var i = 0; i < warmupFrames; i++) {
-    setHostState(() => tick++);
-    scrollController.jumpTo(tick.isEven ? 0 : 120);
-    await tester.pump();
-  }
-
-  final samplesUs = <double>[];
-  for (var i = 0; i < sampleFrames; i++) {
-    final sw = Stopwatch()..start();
-    setHostState(() => tick++);
-    scrollController.jumpTo(tick.isEven ? 0 : 120);
-    await tester.pump();
-    sw.stop();
-    samplesUs.add(sw.elapsedMicroseconds.toDouble());
-  }
-
-  scrollController.dispose();
-  await tester.pumpWidget(const SizedBox.shrink());
-  await tester.pump(const Duration(seconds: 1));
-  return samplesUs;
-}
-
 void main() {
   const latencyWarmup = 5;
   const latencySamplesCount = 20;
-  const overheadWarmup = 30;
-  const overheadSamplesCount = 120;
-  const trackedWidgetCount = 100;
-  const scalabilityCounts = [10, 50, 100, 250];
-  const scalabilityWarmup = 15;
-  const scalabilitySamplesCount = 40;
+  const mountWarmup = 5;
+  const mountSamplesCount = 20;
+  const mountWidgetCount = 250;
+  const scrollWarmup = 30;
+  const scrollSamplesCount = 120;
+  const scrollWidgetCount = 100;
 
   testWidgets('benchmark focus_detector_v2', (tester) async {
-    final latencySamplesMs = <double>[];
-    final totalLatencyRuns = latencyWarmup + latencySamplesCount;
-
-    for (var i = 0; i < totalLatencyRuns; i++) {
+    final routeSamplesMs = <double>[];
+    for (var i = 0; i < latencyWarmup + latencySamplesCount; i++) {
       VisibilityDetectorController.instance.updateInterval =
           const Duration(milliseconds: 500);
 
@@ -176,37 +106,187 @@ void main() {
 
       expect(unfocused, isTrue);
       if (i >= latencyWarmup) {
-        latencySamplesMs.add(simulatedMs + triggerFrameMs);
+        routeSamplesMs.add(simulatedMs + triggerFrameMs);
       }
 
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump(const Duration(seconds: 1));
     }
 
-    final overheadSamplesUs = await _measureScrollFrames(
-      tester: tester,
-      prefix: 'fd_overhead',
-      count: trackedWidgetCount,
-      warmupFrames: overheadWarmup,
-      sampleFrames: overheadSamplesCount,
+    var dialogUnfocused = false;
+    final dialogNav = GlobalKey<NavigatorState>();
+    VisibilityDetectorController.instance.updateInterval =
+        const Duration(milliseconds: 500);
+    await tester.pumpWidget(
+      WidgetsApp(
+        navigatorKey: dialogNav,
+        color: const Color(0xFF000000),
+        pageRouteBuilder: <T>(settings, pageBuilder) => PageRouteBuilder<T>(
+          settings: settings,
+          pageBuilder: (context, _, __) => pageBuilder(context),
+        ),
+        home: FocusDetector(
+          key: UniqueKey(),
+          onFocusLost: () => dialogUnfocused = true,
+          child: const SizedBox.expand(),
+        ),
+      ),
     );
-
-    final scalability = <String, Map<String, double>>{};
-    for (final count in scalabilityCounts) {
-      final samplesUs = await _measureScrollFrames(
-        tester: tester,
-        prefix: 'fd_scale',
-        count: count,
-        warmupFrames: scalabilityWarmup,
-        sampleFrames: scalabilitySamplesCount,
-      );
-      final stats = _summarize(samplesUs, decimals: 1);
-      scalability['$count'] = {
-        'median': stats['median']!,
-        'p95': stats['p95']!,
-        'stddev': stats['stddev']!,
-      };
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    dialogNav.currentState!.push<void>(
+      RawDialogRoute<void>(
+        transitionDuration: Duration.zero,
+        barrierColor: const Color(0x88000000),
+        pageBuilder: (_, __, ___) => const Center(
+          child: SizedBox(
+            width: 240,
+            height: 140,
+            child: ColoredBox(color: Color(0xFFFFFFFF)),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    for (var s = 0; s < 1500 && !dialogUnfocused; s++) {
+      await tester.pump(const Duration(milliseconds: 1));
     }
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(seconds: 1));
+
+    final dialogSamplesMs = <double>[];
+    if (dialogUnfocused) {
+      for (var i = 0; i < latencyWarmup + latencySamplesCount; i++) {
+        final nav = GlobalKey<NavigatorState>();
+        var unfocused = false;
+        VisibilityDetectorController.instance.updateInterval =
+            const Duration(milliseconds: 500);
+        await tester.pumpWidget(
+          WidgetsApp(
+            navigatorKey: nav,
+            color: const Color(0xFF000000),
+            pageRouteBuilder: <T>(settings, pageBuilder) => PageRouteBuilder<T>(
+              settings: settings,
+              pageBuilder: (context, _, __) => pageBuilder(context),
+            ),
+            home: FocusDetector(
+              key: UniqueKey(),
+              onFocusLost: () => unfocused = true,
+              child: const SizedBox.expand(),
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 600));
+        final initialSw = Stopwatch()..start();
+        nav.currentState!.push<void>(
+          RawDialogRoute<void>(
+            transitionDuration: Duration.zero,
+            barrierColor: const Color(0x88000000),
+            pageBuilder: (_, __, ___) => const Center(
+              child: SizedBox(
+                width: 240,
+                height: 140,
+                child: ColoredBox(color: Color(0xFFFFFFFF)),
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        initialSw.stop();
+        var simulatedMs = 0;
+        var triggerFrameMs = initialSw.elapsedMicroseconds / 1000.0;
+        while (!unfocused && simulatedMs < 1500) {
+          final stepSw = Stopwatch()..start();
+          simulatedMs += 1;
+          await tester.pump(const Duration(milliseconds: 1));
+          stepSw.stop();
+          triggerFrameMs = stepSw.elapsedMicroseconds / 1000.0;
+        }
+        if (unfocused && i >= latencyWarmup) {
+          dialogSamplesMs.add(simulatedMs + triggerFrameMs);
+        }
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump(const Duration(seconds: 1));
+      }
+    }
+
+    VisibilityDetectorController.instance.updateInterval = Duration.zero;
+    final mountSamplesMs = <double>[];
+    for (var i = 0; i < mountWarmup + mountSamplesCount; i++) {
+      final sw = Stopwatch()..start();
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: SingleChildScrollView(
+            child: Column(
+              children: List.generate(
+                mountWidgetCount,
+                (index) => FocusDetector(
+                  key: ValueKey('fd_mu_${i}_$index'),
+                  onFocusGained: () {},
+                  onFocusLost: () {},
+                  child: const SizedBox(width: 20, height: 20),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      sw.stop();
+
+      if (i >= mountWarmup) {
+        mountSamplesMs.add(sw.elapsedMicroseconds / 1000.0);
+      }
+      await tester.pump(const Duration(seconds: 1));
+    }
+
+    final scrollController = ScrollController();
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: SizedBox(
+          width: 400,
+          height: 600,
+          child: SingleChildScrollView(
+            controller: scrollController,
+            child: Column(
+              children: List.generate(
+                scrollWidgetCount,
+                (index) => FocusDetector(
+                  key: ValueKey('fd_sc_$index'),
+                  onFocusGained: () {},
+                  onFocusLost: () {},
+                  child: const SizedBox(width: 400, height: 40),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    for (var i = 0; i < scrollWarmup; i++) {
+      scrollController.jumpTo(i.isEven ? 0 : 120);
+      await tester.pump();
+    }
+
+    final scrollSamplesMs = <double>[];
+    for (var i = 0; i < scrollSamplesCount; i++) {
+      final sw = Stopwatch()..start();
+      scrollController.jumpTo(i.isEven ? 0 : 120);
+      await tester.pump();
+      sw.stop();
+      scrollSamplesMs.add(sw.elapsedMicroseconds / 1000.0);
+    }
+
+    scrollController.dispose();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(seconds: 1));
 
     final outFile = File('../../results/focus_detector_v2.json');
     outFile.parent.createSync(recursive: true);
@@ -219,11 +299,19 @@ void main() {
         'dart_version': Platform.version.split(' ').first,
         'mode': 'isolated_runner_concurrency_1',
         'latency_samples_count': latencySamplesCount,
-        'overhead_samples_count': overheadSamplesCount,
-        'widgets_count': trackedWidgetCount,
-        'detection_latency_ms': _summarize(latencySamplesMs, decimals: 3),
-        'frame_overhead_us': _summarize(overheadSamplesUs, decimals: 1),
-        'scalability_us': scalability,
+        'mount_samples_count': mountSamplesCount,
+        'mount_widgets_count': mountWidgetCount,
+        'scroll_samples_count': scrollSamplesCount,
+        'scroll_widgets_count': scrollWidgetCount,
+        'route_latency_ms': _summarize(routeSamplesMs, decimals: 3),
+        'dialog_detection_ms': dialogSamplesMs.length == latencySamplesCount
+            ? {
+                'supported': true,
+                ..._summarize(dialogSamplesMs, decimals: 3),
+              }
+            : {'supported': false},
+        'mount_unmount_250_ms': _summarize(mountSamplesMs, decimals: 3),
+        'scroll_frame_100_ms': _summarize(scrollSamplesMs, decimals: 3),
       }),
     );
   });

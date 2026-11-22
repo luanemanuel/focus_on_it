@@ -1,0 +1,39 @@
+{
+  "name": "visibility_detector",
+  "platform": "windows (\"Windows 11 Pro\" 10.0 (Build 26300))",
+  "cpu_cores": 16,
+  "dart_version": "3.14.0",
+  "mode": "isolated_runner_concurrency_1",
+  "latency_samples_count": 20,
+  "mount_samples_count": 20,
+  "mount_widgets_count": 250,
+  "scroll_samples_count": 120,
+  "scroll_widgets_count": 100,
+  "route_latency_ms": {
+    "median": 500.13,
+    "mean": 500.138,
+    "stddev": 0.045,
+    "p95": 500.215,
+    "min": 500.079,
+    "max": 500.252
+  },
+  "dialog_detection_ms": {
+    "supported": false
+  },
+  "mount_unmount_250_ms": {
+    "median": 10.532,
+    "mean": 11.456,
+    "stddev": 2.789,
+    "p95": 17.301,
+    "min": 8.173,
+    "max": 18.267
+  },
+  "scroll_frame_100_ms": {
+    "median": 0.778,
+    "mean": 0.812,
+    "stddev": 0.204,
+    "p95": 1.087,
+    "min": 0.609,
+    "max": 2.321
+  }
+}

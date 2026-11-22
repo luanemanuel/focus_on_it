@@ -1,0 +1,259 @@
+{
+  "platform": "windows (\"Windows 11 Pro\" 10.0 (Build 26300))",
+  "cpu_cores": 16,
+  "dart_version": "3.14.0",
+  "mode": "isolated_runner_concurrency_1",
+  "latency_samples_count": 20,
+  "mount_samples_count": 20,
+  "mount_widgets_count": 250,
+  "scroll_samples_count": 120,
+  "scroll_widgets_count": 100,
+  "targets": [
+    {
+      "name": "focus_detector_v2",
+      "platform": "windows (\"Windows 11 Pro\" 10.0 (Build 26300))",
+      "cpu_cores": 16,
+      "dart_version": "3.14.0",
+      "mode": "isolated_runner_concurrency_1",
+      "latency_samples_count": 20,
+      "mount_samples_count": 20,
+      "mount_widgets_count": 250,
+      "scroll_samples_count": 120,
+      "scroll_widgets_count": 100,
+      "route_latency_ms": {
+        "median": 500.105,
+        "mean": 500.12,
+        "stddev": 0.042,
+        "p95": 500.205,
+        "min": 500.079,
+        "max": 500.208
+      },
+      "dialog_detection_ms": {
+        "supported": false
+      },
+      "mount_unmount_250_ms": {
+        "median": 11.79,
+        "mean": 11.961,
+        "stddev": 2.93,
+        "p95": 15.573,
+        "min": 8.174,
+        "max": 18.563
+      },
+      "scroll_frame_100_ms": {
+        "median": 0.521,
+        "mean": 0.557,
+        "stddev": 0.173,
+        "p95": 0.743,
+        "min": 0.425,
+        "max": 1.992
+      }
+    },
+    {
+      "name": "focus_on_it 1.0.6",
+      "platform": "windows (\"Windows 11 Pro\" 10.0 (Build 26300))",
+      "cpu_cores": 16,
+      "dart_version": "3.14.0",
+      "mode": "isolated_runner_concurrency_1",
+      "latency_samples_count": 20,
+      "mount_samples_count": 20,
+      "mount_widgets_count": 250,
+      "scroll_samples_count": 120,
+      "scroll_widgets_count": 100,
+      "route_latency_ms": {
+        "median": 500.129,
+        "mean": 500.134,
+        "stddev": 0.018,
+        "p95": 500.162,
+        "min": 500.103,
+        "max": 500.188
+      },
+      "dialog_detection_ms": {
+        "supported": false
+      },
+      "mount_unmount_250_ms": {
+        "median": 12.795,
+        "mean": 12.002,
+        "stddev": 2.58,
+        "p95": 14.868,
+        "min": 7.527,
+        "max": 14.932
+      },
+      "scroll_frame_100_ms": {
+        "median": 0.536,
+        "mean": 0.566,
+        "stddev": 0.172,
+        "p95": 0.776,
+        "min": 0.413,
+        "max": 1.955
+      }
+    },
+    {
+      "name": "focus_on_it 2.0.1",
+      "platform": "windows (\"Windows 11 Pro\" 10.0 (Build 26300))",
+      "cpu_cores": 16,
+      "dart_version": "3.14.0",
+      "mode": "isolated_runner_concurrency_1",
+      "latency_samples_count": 20,
+      "mount_samples_count": 20,
+      "mount_widgets_count": 250,
+      "scroll_samples_count": 120,
+      "scroll_widgets_count": 100,
+      "route_latency_ms": {
+        "median": 500.137,
+        "mean": 500.149,
+        "stddev": 0.044,
+        "p95": 500.239,
+        "min": 500.11,
+        "max": 500.288
+      },
+      "dialog_detection_ms": {
+        "supported": false
+      },
+      "mount_unmount_250_ms": {
+        "median": 12.16,
+        "mean": 12.385,
+        "stddev": 3.278,
+        "p95": 17.743,
+        "min": 7.765,
+        "max": 18.106
+      },
+      "scroll_frame_100_ms": {
+        "median": 0.529,
+        "mean": 0.561,
+        "stddev": 0.187,
+        "p95": 0.794,
+        "min": 0.412,
+        "max": 2.045
+      }
+    },
+    {
+      "name": "focus_on_it 3.0 (Fast Path)",
+      "platform": "windows (\"Windows 11 Pro\" 10.0 (Build 26300))",
+      "cpu_cores": 16,
+      "dart_version": "3.14.0",
+      "mode": "isolated_runner_concurrency_1",
+      "latency_samples_count": 20,
+      "mount_samples_count": 20,
+      "mount_widgets_count": 250,
+      "scroll_samples_count": 120,
+      "scroll_widgets_count": 100,
+      "route_latency_ms": {
+        "median": 3.38,
+        "mean": 3.448,
+        "stddev": 0.391,
+        "p95": 4.098,
+        "min": 2.879,
+        "max": 4.292
+      },
+      "dialog_detection_ms": {
+        "supported": true,
+        "median": 3.487,
+        "mean": 3.73,
+        "stddev": 0.954,
+        "p95": 4.644,
+        "min": 2.902,
+        "max": 7.13
+      },
+      "mount_unmount_250_ms": {
+        "median": 11.684,
+        "mean": 13.566,
+        "stddev": 4.559,
+        "p95": 20.398,
+        "min": 8.717,
+        "max": 26.99
+      },
+      "scroll_frame_100_ms": {
+        "median": 0.437,
+        "mean": 0.454,
+        "stddev": 0.101,
+        "p95": 0.632,
+        "min": 0.344,
+        "max": 0.933
+      }
+    },
+    {
+      "name": "focus_on_it 3.0 (Viewport)",
+      "platform": "windows (\"Windows 11 Pro\" 10.0 (Build 26300))",
+      "cpu_cores": 16,
+      "dart_version": "3.14.0",
+      "mode": "isolated_runner_concurrency_1",
+      "latency_samples_count": 20,
+      "mount_samples_count": 20,
+      "mount_widgets_count": 250,
+      "scroll_samples_count": 120,
+      "scroll_widgets_count": 100,
+      "route_latency_ms": {
+        "median": 3.632,
+        "mean": 3.661,
+        "stddev": 0.492,
+        "p95": 4.631,
+        "min": 2.96,
+        "max": 4.639
+      },
+      "dialog_detection_ms": {
+        "supported": true,
+        "median": 3.739,
+        "mean": 3.67,
+        "stddev": 0.393,
+        "p95": 4.146,
+        "min": 3.058,
+        "max": 4.535
+      },
+      "mount_unmount_250_ms": {
+        "median": 17.054,
+        "mean": 17.786,
+        "stddev": 4.953,
+        "p95": 23.67,
+        "min": 10.593,
+        "max": 30.748
+      },
+      "scroll_frame_100_ms": {
+        "median": 0.597,
+        "mean": 0.645,
+        "stddev": 0.154,
+        "p95": 0.877,
+        "min": 0.497,
+        "max": 1.384
+      }
+    },
+    {
+      "name": "visibility_detector",
+      "platform": "windows (\"Windows 11 Pro\" 10.0 (Build 26300))",
+      "cpu_cores": 16,
+      "dart_version": "3.14.0",
+      "mode": "isolated_runner_concurrency_1",
+      "latency_samples_count": 20,
+      "mount_samples_count": 20,
+      "mount_widgets_count": 250,
+      "scroll_samples_count": 120,
+      "scroll_widgets_count": 100,
+      "route_latency_ms": {
+        "median": 500.13,
+        "mean": 500.138,
+        "stddev": 0.045,
+        "p95": 500.215,
+        "min": 500.079,
+        "max": 500.252
+      },
+      "dialog_detection_ms": {
+        "supported": false
+      },
+      "mount_unmount_250_ms": {
+        "median": 10.532,
+        "mean": 11.456,
+        "stddev": 2.789,
+        "p95": 17.301,
+        "min": 8.173,
+        "max": 18.267
+      },
+      "scroll_frame_100_ms": {
+        "median": 0.778,
+        "mean": 0.812,
+        "stddev": 0.204,
+        "p95": 1.087,
+        "min": 0.609,
+        "max": 2.321
+      }
+    }
+  ]
+}

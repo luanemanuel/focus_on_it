@@ -9,18 +9,26 @@ class FocusOnItScope extends InheritedModel<Object> {
   const FocusOnItScope({
     required this.state,
     required super.child,
+    FocusState Function()? stateReader,
+    VoidCallback? onDependentAdded,
     super.key,
-  });
+  })  : _stateReader = stateReader,
+        _onDependentAdded = onDependentAdded;
 
   /// The current focus and visibility snapshot for the enclosing subtree.
   final FocusState state;
+
+  final FocusState Function()? _stateReader;
+  final VoidCallback? _onDependentAdded;
+
+  FocusState get _effectiveState => _stateReader?.call() ?? state;
 
   /// Returns the enclosing [FocusState], or `null` if no ancestor exists.
   static FocusState? maybeOf(BuildContext context) {
     return InheritedModel.inheritFrom<FocusOnItScope>(
       context,
       aspect: _FocusScopeAspect.state,
-    )?.state;
+    )?._effectiveState;
   }
 
   /// Returns the enclosing [FocusState] and subscribes to state changes.
@@ -40,7 +48,7 @@ class FocusOnItScope extends InheritedModel<Object> {
     return InheritedModel.inheritFrom<FocusOnItScope>(
       context,
       aspect: _FocusScopeAspect.focused,
-    )?.state.isFocused;
+    )?._effectiveState.isFocused;
   }
 
   /// Returns whether the enclosing `FocusOnIt` is focused and rebuilds only
@@ -55,6 +63,9 @@ class FocusOnItScope extends InheritedModel<Object> {
     }
     return focused;
   }
+
+  @override
+  InheritedModelElement<Object> createElement() => _FocusOnItScopeElement(this);
 
   @override
   bool updateShouldNotify(FocusOnItScope oldWidget) => oldWidget.state != state;
@@ -73,5 +84,15 @@ class FocusOnItScope extends InheritedModel<Object> {
       return true;
     }
     return false;
+  }
+}
+
+class _FocusOnItScopeElement extends InheritedModelElement<Object> {
+  _FocusOnItScopeElement(super.widget);
+
+  @override
+  void updateDependencies(Element dependent, Object? aspect) {
+    super.updateDependencies(dependent, aspect);
+    (widget as FocusOnItScope)._onDependentAdded?.call();
   }
 }

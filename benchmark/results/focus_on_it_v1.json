@@ -1,0 +1,39 @@
+{
+  "name": "focus_on_it 1.0.6",
+  "platform": "windows (\"Windows 11 Pro\" 10.0 (Build 26300))",
+  "cpu_cores": 16,
+  "dart_version": "3.14.0",
+  "mode": "isolated_runner_concurrency_1",
+  "latency_samples_count": 20,
+  "mount_samples_count": 20,
+  "mount_widgets_count": 250,
+  "scroll_samples_count": 120,
+  "scroll_widgets_count": 100,
+  "route_latency_ms": {
+    "median": 500.129,
+    "mean": 500.134,
+    "stddev": 0.018,
+    "p95": 500.162,
+    "min": 500.103,
+    "max": 500.188
+  },
+  "dialog_detection_ms": {
+    "supported": false
+  },
+  "mount_unmount_250_ms": {
+    "median": 12.795,
+    "mean": 12.002,
+    "stddev": 2.58,
+    "p95": 14.868,
+    "min": 7.527,
+    "max": 14.932
+  },
+  "scroll_frame_100_ms": {
+    "median": 0.536,
+    "mean": 0.566,
+    "stddev": 0.172,
+    "p95": 0.776,
+    "min": 0.413,
+    "max": 1.955
+  }
+}

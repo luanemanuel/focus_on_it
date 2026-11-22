@@ -1,6 +1,6 @@
 import 'package:flutter/rendering.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
+import 'package:focus_on_it/src/engine/viewport_visibility_hub.dart';
 import 'package:focus_on_it/src/models/focus_visibility_info.dart';
 
 /// Tracks viewport intersection bounds for [child] without polling timers.
@@ -23,19 +23,17 @@ class ViewportVisibilityTracker extends StatefulWidget {
       _ViewportVisibilityTrackerState();
 }
 
-class _ViewportVisibilityTrackerState extends State<ViewportVisibilityTracker>
-    with WidgetsBindingObserver {
+class _ViewportVisibilityTrackerState extends State<ViewportVisibilityTracker> {
   final List<ScrollableState> _scrollables = [];
   final List<ScrollPosition> _scrollPositions = [];
 
   RenderBox? _renderBox;
   FocusVisibilityInfo? _lastInfo;
-  bool _measurementScheduled = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
+    ViewportVisibilityHub().addMetricsListener(_scheduleMeasurement);
   }
 
   @override
@@ -52,13 +50,10 @@ class _ViewportVisibilityTrackerState extends State<ViewportVisibilityTracker>
   }
 
   @override
-  void didChangeMetrics() {
-    _scheduleMeasurement();
-  }
-
-  @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
+    ViewportVisibilityHub()
+      ..removeMetricsListener(_scheduleMeasurement)
+      ..cancelFlush(_measureVisibilityWithCache);
     _detachScrollListeners();
     _renderBox = null;
     super.dispose();
@@ -66,17 +61,13 @@ class _ViewportVisibilityTrackerState extends State<ViewportVisibilityTracker>
 
   void _attachScrollListeners() {
     _detachScrollListeners();
-    Scrollable.maybeOf(context);
-
-    var currentContext = context;
-    while (true) {
-      final scrollable =
-          currentContext.findAncestorStateOfType<ScrollableState>();
-      if (scrollable == null) break;
+    var scrollable = Scrollable.maybeOf(context);
+    while (scrollable != null) {
       _scrollables.add(scrollable);
       final position = scrollable.position..addListener(_scheduleMeasurement);
       _scrollPositions.add(position);
-      currentContext = scrollable.context;
+      scrollable =
+          scrollable.context.findAncestorStateOfType<ScrollableState>();
     }
   }
 
@@ -100,16 +91,14 @@ class _ViewportVisibilityTrackerState extends State<ViewportVisibilityTracker>
   }
 
   void _scheduleMeasurement() {
-    if (_measurementScheduled || !mounted) return;
-    _measurementScheduled = true;
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      _measurementScheduled = false;
-      if (!mounted) return;
-      _measureVisibility();
-    });
+    if (!mounted) return;
+    ViewportVisibilityHub().scheduleFlush(_measureVisibilityWithCache);
   }
 
-  void _measureVisibility() {
+  void _measureVisibilityWithCache(
+    Map<ScrollableState, Rect> scrollableRectCache,
+  ) {
+    if (!mounted) return;
     final renderBox = _renderBox;
     if (renderBox == null || !renderBox.attached || !renderBox.hasSize) {
       return;
@@ -135,12 +124,18 @@ class _ViewportVisibilityTrackerState extends State<ViewportVisibilityTracker>
     var clipRect = _resolveWindowBounds() ?? widgetRect;
     for (final scrollable in _scrollables) {
       if (!scrollable.mounted) continue;
-      final vpRender = scrollable.context.findRenderObject();
-      if (vpRender is RenderBox && vpRender.attached && vpRender.hasSize) {
-        final vpRect = Rect.fromPoints(
-          vpRender.localToGlobal(Offset.zero),
-          vpRender.localToGlobal(vpRender.size.bottomRight(Offset.zero)),
-        );
+      var vpRect = scrollableRectCache[scrollable];
+      if (vpRect == null) {
+        final vpRender = scrollable.context.findRenderObject();
+        if (vpRender is RenderBox && vpRender.attached && vpRender.hasSize) {
+          vpRect = Rect.fromPoints(
+            vpRender.localToGlobal(Offset.zero),
+            vpRender.localToGlobal(vpRender.size.bottomRight(Offset.zero)),
+          );
+          scrollableRectCache[scrollable] = vpRect;
+        }
+      }
+      if (vpRect != null) {
         clipRect = clipRect.intersect(vpRect);
       }
     }

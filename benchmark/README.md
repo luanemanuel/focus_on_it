@@ -1,12 +1,13 @@
 # Benchmarks
 
-Each package has its own isolated runner under `runners/` with no shared competitor dependencies. Every runner executes separately with `--concurrency=1` and warm-up iterations before measurements are recorded.
+Each package has its own isolated runner under `runners/` with no shared competitor dependencies. Every runner executes separately with `--concurrency=1` and warm-up iterations before timings start.
 
 ## Methodology
 
-- **Route unfocus latency:** 5 warm-up runs + 20 measured runs with default production settings (`500ms` update interval for `visibility_detector`-based packages). Reports median (`p50`), mean, sample standard deviation (`stddev`), `p95`, min, and max.
-- **Frame overhead:** 30 warm-up frames + 120 individually timed scroll/rebuild frames across 100 mounted widgets (`0ms` interval so CPU cost is measured without timer waiting).
-- **Scalability:** 15 warm-up frames + 40 timed frames at `10`, `50`, `100`, and `250` simultaneously mounted widgets.
+- **Route unfocus latency:** 5 warm-up runs + 20 measured `Navigator.push` runs using default production intervals (`500ms` for `visibility_detector`-based packages).
+- **Translucent dialog detection:** pushes an opaque=false route (such as a `Dialog` or `ModalBottomSheet`) and checks whether unfocus fires within 600ms (20 measured runs when supported).
+- **Mount & unmount (250 widgets):** 5 warm-up cycles + 20 timed mount/unmount cycles of 250 `SizedBox` widgets (`0ms` interval).
+- **Scroll frame cost (100 widgets):** 30 warm-up frames + 120 timed `ScrollController.jumpTo` frames across 100 `SizedBox` widgets (`0ms` interval, with no `Text` rebuild noise).
 
 ## Running the benchmarks
 
@@ -25,4 +26,4 @@ pip install -r requirements.txt
 python plot_benchmarks.py
 ```
 
-The script merges `results/*.json` into `results.json` and writes `detection_latency.png`, `frame_overhead.png`, and `scalability.png` to `../assets/benchmarks/`.
+The script merges `results/*.json` into `results.json` and writes `detection_speed.png` and `runtime_performance.png` to `../assets/benchmarks/`.

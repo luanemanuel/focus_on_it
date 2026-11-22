@@ -103,9 +103,11 @@ class _FocusOnItState extends State<FocusOnIt> {
   bool _tickerEnabled = true;
   bool _routeActive = true;
   bool _hasIndexedOrOffstageAncestor = false;
+  bool _hasScopeDependents = false;
   bool _routeSyncScheduled = false;
   bool _suppressSetState = false;
   bool _disposing = false;
+  late FocusState _scopeSnapshot;
 
   @override
   void initState() {
@@ -129,6 +131,7 @@ class _FocusOnItState extends State<FocusOnIt> {
       onForegroundLost: widget.onForegroundLost,
       onStateChanged: _handleStateChanged,
     );
+    _scopeSnapshot = _stateMachine.state;
 
     final controller = widget.controller;
     if (controller != null) {
@@ -143,9 +146,16 @@ class _FocusOnItState extends State<FocusOnIt> {
     // ignore: deprecated_member_use
     _tickerEnabled = TickerMode.of(context);
     _routeActive = _resolveRouteActive();
-    _hasIndexedOrOffstageAncestor =
-        context.findAncestorWidgetOfExactType<IndexedStack>() != null ||
-            context.findAncestorWidgetOfExactType<Offstage>() != null;
+    var hasHiddenAncestor = false;
+    context.visitAncestorElements((element) {
+      final ancestorWidget = element.widget;
+      if (ancestorWidget is IndexedStack || ancestorWidget is Offstage) {
+        hasHiddenAncestor = true;
+        return false;
+      }
+      return true;
+    });
+    _hasIndexedOrOffstageAncestor = hasHiddenAncestor;
     _scheduleRouteSync();
   }
 
@@ -250,12 +260,26 @@ class _FocusOnItState extends State<FocusOnIt> {
     );
   }
 
+  FocusState _readCurrentState() => _stateMachine.state;
+
+  void _handleScopeDependentAdded() {
+    if (_hasScopeDependents) return;
+    _hasScopeDependents = true;
+    if (_scopeSnapshot != _stateMachine.state && !_disposing && mounted) {
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_disposing && _scopeSnapshot != _stateMachine.state) {
+          setState(() {});
+        }
+      });
+    }
+  }
+
   void _handleStateChanged(FocusState nextState) {
     final controller = widget.controller;
     if (controller != null) {
       updateFocusOnItController(controller, nextState);
     }
-    if (!_disposing && !_suppressSetState && mounted) {
+    if (_hasScopeDependents && !_disposing && !_suppressSetState && mounted) {
       setState(() {});
     }
   }
@@ -269,8 +293,11 @@ class _FocusOnItState extends State<FocusOnIt> {
           )
         : widget.child;
 
+    _scopeSnapshot = _stateMachine.state;
     return FocusOnItScope(
-      state: _stateMachine.state,
+      state: _scopeSnapshot,
+      stateReader: _readCurrentState,
+      onDependentAdded: _handleScopeDependentAdded,
       child: content,
     );
   }
