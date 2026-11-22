@@ -1,70 +1,87 @@
+import 'dart:ui';
+
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:focus_on_it/src/engine/viewport_visibility_hub.dart';
 import 'package:focus_on_it/src/models/focus_visibility_info.dart';
 
 /// Tracks viewport intersection bounds for [child] without polling timers.
-class ViewportVisibilityTracker extends StatefulWidget {
+class ViewportVisibilityTracker extends SingleChildRenderObjectWidget {
   /// Creates a [ViewportVisibilityTracker].
   const ViewportVisibilityTracker({
     required this.onVisibilityMeasured,
-    required this.child,
+    required super.child,
     super.key,
   });
 
   /// Called when measured visibility bounds or visible fraction change.
   final ValueChanged<FocusVisibilityInfo> onVisibilityMeasured;
 
-  /// The widget whose viewport intersection is tracked.
-  final Widget child;
+  @override
+  SingleChildRenderObjectElement createElement() =>
+      _ViewportVisibilityElement(this);
 
   @override
-  State<ViewportVisibilityTracker> createState() =>
-      _ViewportVisibilityTrackerState();
+  RenderObject createRenderObject(BuildContext context) {
+    return _RenderViewportVisibility(
+      onLayoutPerformed:
+          (context as _ViewportVisibilityElement).scheduleMeasurement,
+    );
+  }
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    covariant RenderObject renderObject,
+  ) {
+    (renderObject as _RenderViewportVisibility).onLayoutPerformed =
+        (context as _ViewportVisibilityElement).scheduleMeasurement;
+  }
 }
 
-class _ViewportVisibilityTrackerState extends State<ViewportVisibilityTracker> {
+class _ViewportVisibilityElement extends SingleChildRenderObjectElement {
+  _ViewportVisibilityElement(super.widget);
+
   final List<ScrollableState> _scrollables = [];
   final List<ScrollPosition> _scrollPositions = [];
-
-  RenderBox? _renderBox;
   FocusVisibilityInfo? _lastInfo;
 
   @override
-  void initState() {
-    super.initState();
-    ViewportVisibilityHub().addMetricsListener(_scheduleMeasurement);
+  void mount(Element? parent, Object? newSlot) {
+    super.mount(parent, newSlot);
+    ViewportVisibilityHub().addMetricsListener(scheduleMeasurement);
+    _attachScrollListeners();
+    scheduleMeasurement();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _attachScrollListeners();
-    _scheduleMeasurement();
+    scheduleMeasurement();
   }
 
   @override
-  void didUpdateWidget(ViewportVisibilityTracker oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _scheduleMeasurement();
+  void update(covariant SingleChildRenderObjectWidget newWidget) {
+    super.update(newWidget);
+    scheduleMeasurement();
   }
 
   @override
-  void dispose() {
+  void unmount() {
     ViewportVisibilityHub()
-      ..removeMetricsListener(_scheduleMeasurement)
+      ..removeMetricsListener(scheduleMeasurement)
       ..cancelFlush(_measureVisibilityWithCache);
     _detachScrollListeners();
-    _renderBox = null;
-    super.dispose();
+    super.unmount();
   }
 
   void _attachScrollListeners() {
     _detachScrollListeners();
-    var scrollable = Scrollable.maybeOf(context);
+    var scrollable = Scrollable.maybeOf(this);
     while (scrollable != null) {
       _scrollables.add(scrollable);
-      final position = scrollable.position..addListener(_scheduleMeasurement);
+      final position = scrollable.position..addListener(scheduleMeasurement);
       _scrollPositions.add(position);
       scrollable =
           scrollable.context.findAncestorStateOfType<ScrollableState>();
@@ -73,64 +90,46 @@ class _ViewportVisibilityTrackerState extends State<ViewportVisibilityTracker> {
 
   void _detachScrollListeners() {
     for (final position in _scrollPositions) {
-      position.removeListener(_scheduleMeasurement);
+      position.removeListener(scheduleMeasurement);
     }
     _scrollPositions.clear();
     _scrollables.clear();
   }
 
-  void _handleRenderBoxAttached(RenderBox renderBox) {
-    _renderBox = renderBox;
-    _scheduleMeasurement();
-  }
-
-  void _handleRenderBoxDetached(RenderBox renderBox) {
-    if (identical(_renderBox, renderBox)) {
-      _renderBox = null;
-    }
-  }
-
-  void _scheduleMeasurement() {
+  void scheduleMeasurement() {
     if (!mounted) return;
     ViewportVisibilityHub().scheduleFlush(_measureVisibilityWithCache);
   }
 
   void _measureVisibilityWithCache(
     Map<ScrollableState, Rect> scrollableRectCache,
+    Map<FlutterView, Rect> windowBoundsCache,
   ) {
     if (!mounted) return;
-    final renderBox = _renderBox;
-    if (renderBox == null || !renderBox.attached || !renderBox.hasSize) {
-      return;
-    }
+    final box = renderObject;
+    if (box is! RenderBox || !box.attached || !box.hasSize) return;
 
-    final size = renderBox.size;
+    final size = box.size;
     if (size.isEmpty) {
-      _emitIfChanged(
-        FocusVisibilityInfo(
-          visibleFraction: 0,
-          size: size,
-          visibleBounds: Rect.zero,
-        ),
-      );
+      _emitZeroIfChanged(size);
       return;
     }
 
-    final widgetRect = Rect.fromPoints(
-      renderBox.localToGlobal(Offset.zero),
-      renderBox.localToGlobal(size.bottomRight(Offset.zero)),
+    final widgetRect = MatrixUtils.transformRect(
+      box.getTransformTo(null),
+      Offset.zero & size,
     );
 
-    var clipRect = _resolveWindowBounds() ?? widgetRect;
+    var clipRect = _resolveWindowBounds(windowBoundsCache) ?? widgetRect;
     for (final scrollable in _scrollables) {
       if (!scrollable.mounted) continue;
       var vpRect = scrollableRectCache[scrollable];
       if (vpRect == null) {
         final vpRender = scrollable.context.findRenderObject();
         if (vpRender is RenderBox && vpRender.attached && vpRender.hasSize) {
-          vpRect = Rect.fromPoints(
-            vpRender.localToGlobal(Offset.zero),
-            vpRender.localToGlobal(vpRender.size.bottomRight(Offset.zero)),
+          vpRect = MatrixUtils.transformRect(
+            vpRender.getTransformTo(null),
+            Offset.zero & vpRender.size,
           );
           scrollableRectCache[scrollable] = vpRect;
         }
@@ -144,13 +143,7 @@ class _ViewportVisibilityTrackerState extends State<ViewportVisibilityTracker> {
     if (intersection.isEmpty ||
         intersection.width <= 0 ||
         intersection.height <= 0) {
-      _emitIfChanged(
-        FocusVisibilityInfo(
-          visibleFraction: 0,
-          size: size,
-          visibleBounds: Rect.zero,
-        ),
-      );
+      _emitZeroIfChanged(size);
       return;
     }
 
@@ -169,90 +162,49 @@ class _ViewportVisibilityTrackerState extends State<ViewportVisibilityTracker> {
     );
   }
 
-  Rect? _resolveWindowBounds() {
-    final view = View.maybeOf(context);
+  Rect? _resolveWindowBounds(Map<FlutterView, Rect> windowBoundsCache) {
+    final view = View.maybeOf(this);
     if (view != null) {
-      return Offset.zero & (view.physicalSize / view.devicePixelRatio);
+      return windowBoundsCache[view] ??=
+          Offset.zero & (view.physicalSize / view.devicePixelRatio);
     }
-    final mediaSize = MediaQuery.maybeSizeOf(context);
+    final mediaSize = MediaQuery.maybeSizeOf(this);
     if (mediaSize != null) {
       return Offset.zero & mediaSize;
     }
     return null;
   }
 
+  void _emitZeroIfChanged(Size size) {
+    final last = _lastInfo;
+    if (last != null &&
+        last.visibleFraction == 0 &&
+        last.size == size &&
+        last.visibleBounds == Rect.zero) {
+      return;
+    }
+    _emitIfChanged(
+      FocusVisibilityInfo(
+        visibleFraction: 0,
+        size: size,
+        visibleBounds: Rect.zero,
+      ),
+    );
+  }
+
   void _emitIfChanged(FocusVisibilityInfo info) {
     if (info == _lastInfo) return;
     _lastInfo = info;
-    widget.onVisibilityMeasured(info);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return _ViewportRenderObjectWidget(
-      onLayoutPerformed: _scheduleMeasurement,
-      onRenderBoxAttached: _handleRenderBoxAttached,
-      onRenderBoxDetached: _handleRenderBoxDetached,
-      child: widget.child,
-    );
-  }
-}
-
-class _ViewportRenderObjectWidget extends SingleChildRenderObjectWidget {
-  const _ViewportRenderObjectWidget({
-    required this.onLayoutPerformed,
-    required this.onRenderBoxAttached,
-    required this.onRenderBoxDetached,
-    required super.child,
-  });
-
-  final VoidCallback onLayoutPerformed;
-  final ValueChanged<RenderBox> onRenderBoxAttached;
-  final ValueChanged<RenderBox> onRenderBoxDetached;
-
-  @override
-  _RenderViewportVisibility createRenderObject(BuildContext context) {
-    return _RenderViewportVisibility(
-      onLayoutPerformed: onLayoutPerformed,
-      onRenderBoxAttached: onRenderBoxAttached,
-      onRenderBoxDetached: onRenderBoxDetached,
-    );
-  }
-
-  @override
-  void updateRenderObject(
-    BuildContext context,
-    _RenderViewportVisibility renderObject,
-  ) {
-    renderObject
-      ..onLayoutPerformed = onLayoutPerformed
-      ..onRenderBoxAttached = onRenderBoxAttached
-      ..onRenderBoxDetached = onRenderBoxDetached;
+    (widget as ViewportVisibilityTracker).onVisibilityMeasured(info);
   }
 }
 
 class _RenderViewportVisibility extends RenderProxyBox {
   _RenderViewportVisibility({
     required this.onLayoutPerformed,
-    required this.onRenderBoxAttached,
-    required this.onRenderBoxDetached,
   });
 
   VoidCallback onLayoutPerformed;
-  ValueChanged<RenderBox> onRenderBoxAttached;
-  ValueChanged<RenderBox> onRenderBoxDetached;
-
-  @override
-  void attach(PipelineOwner owner) {
-    super.attach(owner);
-    onRenderBoxAttached(this);
-  }
-
-  @override
-  void detach() {
-    onRenderBoxDetached(this);
-    super.detach();
-  }
 
   @override
   void performLayout() {

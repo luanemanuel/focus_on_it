@@ -1,9 +1,12 @@
+import 'dart:ui';
+
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
 /// Callback invoked during a batched viewport visibility flush.
 typedef ViewportMeasureCallback = void Function(
   Map<ScrollableState, Rect> scrollableRectCache,
+  Map<FlutterView, Rect> windowBoundsCache,
 );
 
 /// Shared observer and post-frame batch hub for [WidgetsBinding] instances.
@@ -69,8 +72,9 @@ class ViewportVisibilityHub with WidgetsBindingObserver {
     final callbacks = List<ViewportMeasureCallback>.of(_pendingCallbacks);
     _pendingCallbacks.clear();
     final scrollableRectCache = <ScrollableState, Rect>{};
+    final windowBoundsCache = <FlutterView, Rect>{};
     for (final callback in callbacks) {
-      callback(scrollableRectCache);
+      callback(scrollableRectCache, windowBoundsCache);
     }
   }
 }

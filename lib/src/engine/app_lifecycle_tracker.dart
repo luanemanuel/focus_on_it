@@ -16,10 +16,12 @@ class AppLifecycleTracker {
       ..subscribe(
         this,
         onForegroundChanged: _notifyForegroundChanged,
-        getCallbacks: () => _callbacks,
+        getCallbacks: _getCallbacks,
       );
     _isInForeground = _hub.isInForeground;
-    _syncExitListener();
+    if (_callbacks?.onExitRequested != null) {
+      _syncExitListener();
+    }
   }
 
   final ValueChanged<bool> _onForegroundChanged;
@@ -31,6 +33,13 @@ class AppLifecycleTracker {
 
   /// Whether the application is currently considered in the foreground.
   bool get isInForeground => _isInForeground;
+
+  /// Schedules [callback] on the shared post-frame route sync batch.
+  void scheduleRouteSync(VoidCallback callback) =>
+      _hub.scheduleRouteSync(callback);
+
+  /// Cancels a pending post-frame route sync [callback].
+  void cancelRouteSync(VoidCallback callback) => _hub.cancelRouteSync(callback);
 
   /// Updates the lifecycle callbacks, managing an exit listener only when used.
   void updateCallbacks(FocusAppLifecycleCallbacks? callbacks) {
@@ -44,6 +53,8 @@ class AppLifecycleTracker {
     _exitListener = null;
     _hub.unsubscribe(this);
   }
+
+  FocusAppLifecycleCallbacks? _getCallbacks() => _callbacks;
 
   void _syncExitListener() {
     final wantsExitHandler = _callbacks?.onExitRequested != null;

@@ -370,13 +370,19 @@ class FocusStateMachine {
     required bool isInForeground,
     required double visibleFraction,
   }) {
+    final current = _state;
+    if (current.isFocused == isFocused &&
+        current.isVisible == isVisible &&
+        current.isInForeground == isInForeground &&
+        current.visibleFraction == visibleFraction) {
+      return;
+    }
     final next = FocusState(
       isFocused: isFocused,
       isVisible: isVisible,
       isInForeground: isInForeground,
       visibleFraction: visibleFraction,
     );
-    if (next == _state) return;
     _state = next;
     _onStateChanged?.call(next);
   }

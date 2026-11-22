@@ -1,3 +1,4 @@
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 import 'package:focus_on_it/src/models/focus_app_lifecycle_callbacks.dart';
 
@@ -51,12 +52,27 @@ class SharedLifecycleHub {
 
   final WidgetsBinding _binding;
   final Map<Object, _Subscriber> _subscribers = {};
+  final Set<VoidCallback> _pendingRouteSyncs = {};
   late final AppLifecycleListener _listener;
   AppLifecycleState? _lastState;
   late bool _isInForeground;
+  bool _routeSyncFlushScheduled = false;
 
   /// Whether the application is currently considered in the foreground.
   bool get isInForeground => _isInForeground;
+
+  /// Enqueues [callback] to run once in the batched post-frame route sync.
+  void scheduleRouteSync(VoidCallback callback) {
+    _pendingRouteSyncs.add(callback);
+    if (_routeSyncFlushScheduled) return;
+    _routeSyncFlushScheduled = true;
+    SchedulerBinding.instance.addPostFrameCallback((_) => _flushRouteSyncs());
+  }
+
+  /// Cancels a previously queued route sync [callback].
+  void cancelRouteSync(VoidCallback callback) {
+    _pendingRouteSyncs.remove(callback);
+  }
 
   /// Registers a subscriber keyed by [token].
   void subscribe(
@@ -74,8 +90,19 @@ class SharedLifecycleHub {
   void unsubscribe(Object token) {
     _subscribers.remove(token);
     if (_subscribers.isEmpty) {
+      _pendingRouteSyncs.clear();
       _listener.dispose();
       _hubs.remove(_binding);
+    }
+  }
+
+  void _flushRouteSyncs() {
+    _routeSyncFlushScheduled = false;
+    if (_pendingRouteSyncs.isEmpty) return;
+    final callbacks = List<VoidCallback>.of(_pendingRouteSyncs);
+    _pendingRouteSyncs.clear();
+    for (final callback in callbacks) {
+      callback();
     }
   }
 

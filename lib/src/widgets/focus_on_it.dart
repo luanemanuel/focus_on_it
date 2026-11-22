@@ -104,7 +104,6 @@ class _FocusOnItState extends State<FocusOnIt> {
   bool _routeActive = true;
   bool _hasIndexedOrOffstageAncestor = false;
   bool _hasScopeDependents = false;
-  bool _routeSyncScheduled = false;
   bool _suppressSetState = false;
   bool _disposing = false;
   late FocusState _scopeSnapshot;
@@ -113,8 +112,7 @@ class _FocusOnItState extends State<FocusOnIt> {
   void initState() {
     super.initState();
     _lifecycleTracker = AppLifecycleTracker(
-      onForegroundChanged: (isInForeground) =>
-          _stateMachine.updateForeground(isInForeground: isInForeground),
+      onForegroundChanged: _handleForegroundChanged,
       callbacks: widget.appLifecycle,
     );
     _stateMachine = FocusStateMachine(
@@ -200,10 +198,15 @@ class _FocusOnItState extends State<FocusOnIt> {
   @override
   void dispose() {
     _disposing = true;
-    _lifecycleTracker.dispose();
+    _lifecycleTracker
+      ..cancelRouteSync(_flushRouteSync)
+      ..dispose();
     _stateMachine.dispose();
     super.dispose();
   }
+
+  void _handleForegroundChanged(bool isInForeground) =>
+      _stateMachine.updateForeground(isInForeground: isInForeground);
 
   bool _resolveRouteActive() {
     final route = ModalRoute.of(context);
@@ -212,16 +215,16 @@ class _FocusOnItState extends State<FocusOnIt> {
   }
 
   void _scheduleRouteSync() {
-    if (_routeSyncScheduled) return;
-    _routeSyncScheduled = true;
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      _routeSyncScheduled = false;
-      if (!mounted || _disposing) return;
-      final isRouteActive = _tickerEnabled &&
-          _routeActive &&
-          (!_hasIndexedOrOffstageAncestor || !_isHiddenByAncestor());
-      _stateMachine.updateRouteActive(isRouteActive: isRouteActive);
-    });
+    if (_disposing) return;
+    _lifecycleTracker.scheduleRouteSync(_flushRouteSync);
+  }
+
+  void _flushRouteSync() {
+    if (!mounted || _disposing) return;
+    final isRouteActive = _tickerEnabled &&
+        _routeActive &&
+        (!_hasIndexedOrOffstageAncestor || !_isHiddenByAncestor());
+    _stateMachine.updateRouteActive(isRouteActive: isRouteActive);
   }
 
   bool _isHiddenByAncestor() {
