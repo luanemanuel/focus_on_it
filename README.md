@@ -131,11 +131,11 @@ All `FocusOnIt` widgets in the same app share a single `AppLifecycleListener` un
 Each package runs in its own isolated test project with warm-up rounds and plain `SizedBox` trees so layout noise doesn't get in the way.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/luanemanuel/focus_on_it/master/assets/benchmarks/detection_speed.png" alt="Focus Detection Speed & Dialog Coverage">
+  <img src="https://raw.githubusercontent.com/luanemanuel/focus_on_it/3.0.0-dev/assets/benchmarks/detection_speed.png" alt="Focus Detection Speed & Dialog Coverage">
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/luanemanuel/focus_on_it/master/assets/benchmarks/runtime_performance.png" alt="Runtime Build & Scroll Performance">
+  <img src="https://raw.githubusercontent.com/luanemanuel/focus_on_it/3.0.0-dev/assets/benchmarks/runtime_performance.png" alt="Runtime Build & Scroll Performance">
 </p>
 
 By default, Focus on It skips viewport math completely (`Fast Path`) and triggers on the next frame after a route or dialog transition, keeping scroll frames light. Turning on `viewport` enables per-frame scroll intersection checks only for the widgets that ask for it.
