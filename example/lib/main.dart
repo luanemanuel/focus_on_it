@@ -39,35 +39,30 @@ class FocusOnItExample extends StatelessWidget {
           /// Triggered when the widget is no longer visible after route transition.
           logger.i('Visibility Lost.');
         },
-        onDetach: () {
-          /// Triggered when the widget is detached from the widget tree.
-          logger.i('Detach.');
-        },
-        onExitRequested: () async {
-          /// Triggered when the app is requested to exit.
-          logger.i('Exit Requested.');
-          return AppExitResponse.exit;
-        },
-        onHide: () {
-          /// Triggered when the app is hidden.
-          logger.i('Hide.');
-        },
-        onInactive: () {
-          /// Triggered when the app is inactive.
-          logger.i('Inactive.');
-        },
-        onRestart: () {
-          /// Triggered when the app is restarted.
-          logger.i('Restart.');
-        },
-        onShow: () {
-          /// Triggered when the app is shown.
-          logger.i('Show.');
-        },
-        onStateChange: (oldState, newState) {
-          /// Triggered when the app state changes.
-          logger.i('State Change: $oldState -> $newState');
-        },
+        appLifecycle: FocusAppLifecycleCallbacks(
+          onDetach: () {
+            logger.i('Detach.');
+          },
+          onExitRequested: () async {
+            logger.i('Exit Requested.');
+            return AppExitResponse.exit;
+          },
+          onHide: () {
+            logger.i('Hide.');
+          },
+          onInactive: () {
+            logger.i('Inactive.');
+          },
+          onRestart: () {
+            logger.i('Restart.');
+          },
+          onShow: () {
+            logger.i('Show.');
+          },
+          onStateChange: (oldState, newState) {
+            logger.i('State Change: $oldState -> $newState');
+          },
+        ),
         child: Material(
           child: Padding(
             padding: const EdgeInsets.all(16),
