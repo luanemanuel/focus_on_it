@@ -102,6 +102,7 @@ class _FocusOnItState extends State<FocusOnIt> {
 
   bool _tickerEnabled = true;
   bool _routeActive = true;
+  bool _hasIndexedOrOffstageAncestor = false;
   bool _routeSyncScheduled = false;
   bool _suppressSetState = false;
   bool _disposing = false;
@@ -142,6 +143,9 @@ class _FocusOnItState extends State<FocusOnIt> {
     // ignore: deprecated_member_use
     _tickerEnabled = TickerMode.of(context);
     _routeActive = _resolveRouteActive();
+    _hasIndexedOrOffstageAncestor =
+        context.findAncestorWidgetOfExactType<IndexedStack>() != null ||
+            context.findAncestorWidgetOfExactType<Offstage>() != null;
     _scheduleRouteSync();
   }
 
@@ -174,9 +178,10 @@ class _FocusOnItState extends State<FocusOnIt> {
 
       if (widget.includeDialogs != oldWidget.includeDialogs) {
         _routeActive = _resolveRouteActive();
+        _scheduleRouteSync();
+      } else if (_hasIndexedOrOffstageAncestor) {
+        _scheduleRouteSync();
       }
-
-      _scheduleRouteSync();
     } finally {
       _suppressSetState = false;
     }
@@ -202,8 +207,9 @@ class _FocusOnItState extends State<FocusOnIt> {
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _routeSyncScheduled = false;
       if (!mounted || _disposing) return;
-      final isRouteActive =
-          _tickerEnabled && _routeActive && !_isHiddenByAncestor();
+      final isRouteActive = _tickerEnabled &&
+          _routeActive &&
+          (!_hasIndexedOrOffstageAncestor || !_isHiddenByAncestor());
       _stateMachine.updateRouteActive(isRouteActive: isRouteActive);
     });
   }
