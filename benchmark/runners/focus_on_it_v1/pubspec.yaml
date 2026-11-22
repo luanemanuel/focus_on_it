@@ -1,0 +1,16 @@
+name: focus_on_it_v1_benchmark
+description: Isolated runner benchmarking published focus_on_it 1.0.6 from pub.dev.
+publish_to: none
+
+environment:
+  sdk: '>=3.1.0 <4.0.0'
+  flutter: '>=3.13.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  focus_on_it: 1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter

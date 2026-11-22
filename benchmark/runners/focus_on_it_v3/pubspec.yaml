@@ -1,0 +1,17 @@
+name: focus_on_it_v3_benchmark
+description: Isolated runner benchmarking local focus_on_it 3.0.0.
+publish_to: none
+
+environment:
+  sdk: '>=3.1.0 <4.0.0'
+  flutter: '>=3.13.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  focus_on_it:
+    path: ../../..
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
