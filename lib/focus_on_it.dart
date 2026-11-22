@@ -1,5 +1,3 @@
-library focus_on_it;
-
 import 'dart:ui';
 
 import 'package:flutter/widgets.dart';
@@ -26,8 +24,8 @@ class FocusOnIt extends StatefulWidget {
     this.onRestart,
     this.onShow,
     this.onStateChange,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   /// The widget below this widget in the tree.
   final Widget child;
@@ -140,10 +138,7 @@ class _FocusOnItState extends State<FocusOnIt> with WidgetsBindingObserver {
           widget.onStateChange?.call(_oldState, _newState ?? state),
     );
 
-    final isWebTest = const bool.fromEnvironment(
-      'TEST',
-      defaultValue: false,
-    );
+    const isWebTest = bool.fromEnvironment('TEST');
     final isFlutterTest = Platform.environment.containsKey('FLUTTER_TEST');
 
     if (isWebTest || isFlutterTest) {
