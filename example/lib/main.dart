@@ -1,8 +1,7 @@
-// ignore: deprecated_member_use
-import 'package:flutter/material.dart';
 import 'package:focus_on_it_example/examples/indexed_stack_tabs_example.dart';
 import 'package:focus_on_it_example/examples/route_lifecycle_example.dart';
 import 'package:focus_on_it_example/examples/viewport_feed_example.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() {
   runApp(const FocusOnItExampleApp());

@@ -1,6 +1,5 @@
-// ignore: deprecated_member_use
-import 'package:flutter/material.dart';
 import 'package:focus_on_it/focus_on_it.dart';
+import 'package:material_ui/material_ui.dart';
 
 class IndexedStackTabsExample extends StatefulWidget {
   const IndexedStackTabsExample({super.key});
