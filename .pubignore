@@ -1,0 +1,28 @@
+# Build, IDE, and tooling artifacts
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+*.iml
+*.ipr
+*.iws
+.idea/
+.vscode/
+/pubspec.lock
+**/doc/api/
+.dart_tool/
+.packages
+build/
+.fvm/
+coverage/
+
+# Development, CI, and benchmark assets excluded from pub.dev tarball
+benchmark/
+.github/
+test_fixes/

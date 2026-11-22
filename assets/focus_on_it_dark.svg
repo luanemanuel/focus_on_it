@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 272 88" width="272" height="88" role="img" aria-label="Focus on It">
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 14 27 L 14 19 Q 14 14 19 14 L 27 14" stroke="#22D3EE" stroke-width="3.6"/>
+    <path d="M 59 14 L 67 14 Q 72 14 72 19 L 72 27" stroke="#22D3EE" stroke-width="3.6"/>
+    <path d="M 72 61 L 72 69 Q 72 74 67 74 L 59 74" stroke="#22D3EE" stroke-width="3.6"/>
+    <path d="M 27 74 L 19 74 Q 14 74 14 69 L 14 61" stroke="#22D3EE" stroke-width="3.6"/>
+    <path d="M 20 44 C 28 30, 58 30, 66 44 C 58 58, 28 58, 20 44 Z" stroke="#38BDF8" stroke-width="3.6"/>
+  </g>
+  <circle cx="43" cy="44" r="8.6" fill="#0284C7"/>
+  <circle cx="46" cy="41" r="2.7" fill="#FFFFFF"/>
+  <text x="90" y="54.5" font-family="'Segoe UI', Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="33" font-weight="700" letter-spacing="-0.5" fill="#F8FAFC">Focus on It</text>
+</svg>
+
