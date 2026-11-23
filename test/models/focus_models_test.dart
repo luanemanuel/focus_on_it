@@ -120,6 +120,7 @@ void main() {
       expect(a, isNot(equals(custom)));
       expect(a, isNot(equals(dwellOnResume)));
       expect(a.hashCode, isNot(equals(dwellOnResume.hashCode)));
+      expect(a.toString(), contains('FocusViewportConfig('));
     });
 
     test('validates threshold assertions', () {
@@ -150,6 +151,7 @@ void main() {
       expect(a, equals(b));
       expect(a.hashCode, equals(b.hashCode));
       expect(a, isNot(equals(empty)));
+      expect(a.toString(), contains('FocusAppLifecycleCallbacks('));
     });
   });
 

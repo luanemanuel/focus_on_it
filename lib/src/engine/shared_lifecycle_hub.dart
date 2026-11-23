@@ -1,4 +1,3 @@
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 import 'package:focus_on_it/src/models/focus_app_lifecycle_callbacks.dart';
 
@@ -45,8 +44,7 @@ class SharedLifecycleHub {
     _ancestorWatchers.add(callback);
     if (_persistentFrameCallbackRegistered) return;
     _persistentFrameCallbackRegistered = true;
-    SchedulerBinding.instance
-        .addPersistentFrameCallback(_handlePersistentFrame);
+    _binding.addPersistentFrameCallback(_handlePersistentFrame);
   }
 
   /// Unregisters an ancestor visibility [callback].
@@ -59,7 +57,7 @@ class SharedLifecycleHub {
     _pendingRouteSyncs.add(callback);
     if (_routeSyncFlushScheduled) return;
     _routeSyncFlushScheduled = true;
-    SchedulerBinding.instance.addPostFrameCallback((_) => _flushRouteSyncs());
+    _binding.addPostFrameCallback((_) => _flushRouteSyncs());
   }
 
   /// Cancels a previously queued route sync [callback].

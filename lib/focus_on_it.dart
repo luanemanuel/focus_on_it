@@ -1,3 +1,7 @@
+/// Lightweight focus, route, viewport, and app-lifecycle tracking for Flutter
+/// widgets.
+library;
+
 export 'src/controller/focus_on_it_controller.dart' show FocusOnItController;
 export 'src/models/focus_app_lifecycle_callbacks.dart';
 export 'src/models/focus_state.dart';

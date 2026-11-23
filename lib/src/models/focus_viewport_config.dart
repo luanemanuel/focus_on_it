@@ -45,4 +45,10 @@ class FocusViewportConfig {
         applyDwellOnResume,
         onVisibilityChanged,
       );
+
+  @override
+  String toString() => 'FocusViewportConfig('
+      'threshold: $threshold, '
+      'minFocusDuration: $minFocusDuration, '
+      'applyDwellOnResume: $applyDwellOnResume)';
 }

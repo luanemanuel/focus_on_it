@@ -456,6 +456,55 @@ void main() {
       expect(tab0FocusCount, 2);
       expect(tab1UnfocusCount, 2);
     });
+
+    testWidgets(
+      'reparenting with GlobalKey between IndexedStack tabs updates focus',
+      (tester) async {
+        final targetKey = GlobalKey();
+        final controller = FocusOnItController();
+        addTearDown(controller.dispose);
+        var putInActiveTab = false;
+        late StateSetter rebuild;
+
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: StatefulBuilder(
+              builder: (_, setState) {
+                rebuild = setState;
+                return IndexedStack(
+                  children: [
+                    if (putInActiveTab)
+                      FocusOnIt(
+                        key: targetKey,
+                        controller: controller,
+                        child: const Text('Moved'),
+                      )
+                    else
+                      const SizedBox.shrink(),
+                    if (!putInActiveTab)
+                      FocusOnIt(
+                        key: targetKey,
+                        controller: controller,
+                        child: const Text('Moved'),
+                      )
+                    else
+                      const SizedBox.shrink(),
+                  ],
+                );
+              },
+            ),
+          ),
+        );
+
+        expect(controller.isFocused, isFalse);
+
+        rebuild(() => putInActiveTab = true);
+        await tester.pump();
+
+        expect(controller.isFocused, isTrue);
+      },
+    );
   });
 
   group('app lifecycle', () {
@@ -1103,6 +1152,122 @@ void main() {
 
       expect(lastInfo?.visibleFraction, closeTo(1.0, 0.01));
     });
+
+    testWidgets('re-evaluates threshold updates without scrolling',
+        (tester) async {
+      tester.view.physicalSize = const Size(400, 400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      final scrollController = ScrollController();
+      final controller = FocusOnItController();
+      addTearDown(scrollController.dispose);
+      addTearDown(controller.dispose);
+
+      var threshold = 0.8;
+      late StateSetter updateThreshold;
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: StatefulBuilder(
+            builder: (_, setState) {
+              updateThreshold = setState;
+              return SizedBox(
+                width: 400,
+                height: 400,
+                child: ListView(
+                  controller: scrollController,
+                  children: [
+                    FocusOnIt(
+                      controller: controller,
+                      viewport: FocusViewportConfig(threshold: threshold),
+                      child: const SizedBox(width: 400, height: 200),
+                    ),
+                    const SizedBox(height: 600),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      );
+
+      // Clip top 100px so 50% stays visible (below 0.8 threshold).
+      scrollController.jumpTo(100);
+      await tester.pump();
+      expect(controller.isFocused, isFalse);
+
+      updateThreshold(() => threshold = 0.4);
+      await tester.pump();
+      expect(controller.isFocused, isTrue);
+    });
+
+    testWidgets(
+      'toggling viewport updates callbacks and controller safely post-frame',
+      (tester) async {
+        tester.view.physicalSize = const Size(400, 400);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+
+        final controller = FocusOnItController();
+        addTearDown(controller.dispose);
+
+        var useViewport = false;
+        var callbackCount = 0;
+        double? controllerFractionDuringCallback;
+        late StateSetter rebuildHost;
+
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: StatefulBuilder(
+              builder: (_, setState) {
+                rebuildHost = setState;
+                return SizedBox(
+                  width: 400,
+                  height: 400,
+                  child: ListView(
+                    children: [
+                      FocusOnIt(
+                        controller: controller,
+                        viewport: useViewport
+                            ? FocusViewportConfig(
+                                onVisibilityChanged: (_) {
+                                  controllerFractionDuringCallback =
+                                      controller.visibleFraction;
+                                },
+                              )
+                            : null,
+                        onFocus: () => rebuildHost(() => callbackCount++),
+                        onUnfocus: () => rebuildHost(() => callbackCount++),
+                        child: const SizedBox(width: 400, height: 200),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+
+        expect(controller.isFocused, isTrue);
+
+        rebuildHost(() => useViewport = true);
+        await tester.pump();
+
+        expect(tester.takeException(), isNull);
+        expect(controller.isFocused, isTrue);
+        expect(controllerFractionDuringCallback, closeTo(1.0, 0.01));
+        expect(callbackCount, 1);
+
+        rebuildHost(() => useViewport = false);
+        await tester.pump();
+
+        expect(tester.takeException(), isNull);
+        expect(controller.isFocused, isTrue);
+      },
+    );
   });
 }
 

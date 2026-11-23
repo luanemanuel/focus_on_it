@@ -391,4 +391,59 @@ void main() {
       expect(delayed.isFocused, isTrue);
     });
   });
+
+  group('FocusStateMachine re-entrancy guards', () {
+    test('skips secondary callbacks if primary callback disposes machine', () {
+      final events = <String>[];
+      late final FocusStateMachine machine;
+      machine = FocusStateMachine(
+        useViewport: false,
+        onFocus: () {
+          events.add('focus');
+          machine.dispose();
+        },
+        onVisibilityGained: () => events.add('visGained'),
+        onForegroundGained: () => events.add('fgGained'),
+      );
+      machine.updateRouteActive(isRouteActive: true);
+
+      expect(events, ['focus']);
+    });
+
+    test('asserts non-negative minFocusDuration', () {
+      const negative = Duration(milliseconds: -1);
+      expect(
+        () => FocusStateMachine(useViewport: true, minFocusDuration: negative),
+        throwsAssertionError,
+      );
+
+      final machine = FocusStateMachine(useViewport: true);
+      addTearDown(machine.dispose);
+      expect(
+        () => machine.updateConfig(minFocusDuration: negative),
+        throwsAssertionError,
+      );
+    });
+
+    test('switching to viewport while focused avoids spurious unfocus', () {
+      final events = <String>[];
+      final machine = FocusStateMachine(
+        useViewport: false,
+        onFocus: () => events.add('focus'),
+        onUnfocus: () => events.add('unfocus'),
+      )..updateRouteActive(isRouteActive: true);
+      addTearDown(machine.dispose);
+
+      expect(events, ['focus']);
+      events.clear();
+
+      machine.updateConfig(useViewport: true);
+      expect(events, isEmpty);
+      expect(machine.isFocused, isTrue);
+
+      machine.updateViewport(isViewportVisible: true, visibleFraction: 0.7);
+      expect(events, isEmpty);
+      expect(machine.state.visibleFraction, 0.7);
+    });
+  });
 }

@@ -61,4 +61,14 @@ class FocusAppLifecycleCallbacks {
         onShow,
         onStateChange,
       );
+
+  @override
+  String toString() => 'FocusAppLifecycleCallbacks('
+      'onDetach: ${onDetach != null}, '
+      'onExitRequested: ${onExitRequested != null}, '
+      'onHide: ${onHide != null}, '
+      'onInactive: ${onInactive != null}, '
+      'onRestart: ${onRestart != null}, '
+      'onShow: ${onShow != null}, '
+      'onStateChange: ${onStateChange != null})';
 }

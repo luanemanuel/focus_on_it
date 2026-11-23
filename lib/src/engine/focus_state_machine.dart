@@ -23,7 +23,8 @@ class FocusStateMachine {
   })  : _useViewport = useViewport,
         _isInForeground = initialForeground,
         _triggerOnInit = triggerOnInit,
-        _minFocusDuration = minFocusDuration,
+        _minFocusDuration =
+            minFocusDuration.isNegative ? Duration.zero : minFocusDuration,
         _applyDwellOnResume = applyDwellOnResume,
         _notifyOnDispose = notifyOnDispose,
         _isViewportVisible = !useViewport,
@@ -39,6 +40,10 @@ class FocusStateMachine {
           isFocused: false,
           isVisible: false,
           isInForeground: initialForeground,
+        ),
+        assert(
+          !minFocusDuration.isNegative,
+          'minFocusDuration must be non-negative',
         );
 
   bool _useViewport;
@@ -102,8 +107,10 @@ class FocusStateMachine {
   }) {
     if (_disposed) return;
     _hasViewportMeasurement = true;
-    _isViewportVisible = isViewportVisible;
-    _visibleFraction = visibleFraction.clamp(0.0, 1.0);
+    final sanitizedFraction =
+        visibleFraction.isFinite ? visibleFraction.clamp(0.0, 1.0) : 0.0;
+    _isViewportVisible = visibleFraction.isFinite && isViewportVisible;
+    _visibleFraction = sanitizedFraction;
     _evaluateVisibility();
   }
 
@@ -125,6 +132,7 @@ class FocusStateMachine {
       );
       if (wasFocused) {
         _onUnfocus?.call();
+        if (_disposed) return;
         _onForegroundLost?.call();
       }
       return;
@@ -163,6 +171,7 @@ class FocusStateMachine {
           visibleFraction: _effectiveFraction,
         );
         _onFocus?.call();
+        if (_disposed) return;
         _onForegroundGained?.call();
       }
     } else {
@@ -210,24 +219,34 @@ class FocusStateMachine {
         _isViewportVisible = true;
         _visibleFraction = 1;
         _hasViewportMeasurement = true;
+        needsEvaluation = true;
       } else {
-        _isViewportVisible = false;
-        _visibleFraction = 0;
+        _isViewportVisible = _isFocused;
         _hasViewportMeasurement = false;
+        if (!_isFocused) {
+          _visibleFraction = 0;
+        }
       }
-      needsEvaluation = true;
     }
 
-    if (minFocusDuration != null && minFocusDuration != _minFocusDuration) {
-      _minFocusDuration = minFocusDuration;
-      if (_dwellTimer != null) {
-        final fromForeground = _dwellFromForeground;
-        _cancelDwellTimer();
-        if (_isInForeground && _rawVisible && !_isFocused) {
-          if (_minFocusDuration == Duration.zero) {
-            _confirmFocus(fromForeground: fromForeground);
-          } else {
-            _scheduleDwellTimer(fromForeground: fromForeground);
+    if (minFocusDuration != null) {
+      assert(
+        !minFocusDuration.isNegative,
+        'minFocusDuration must be non-negative',
+      );
+      final normalizedDuration =
+          minFocusDuration.isNegative ? Duration.zero : minFocusDuration;
+      if (normalizedDuration != _minFocusDuration) {
+        _minFocusDuration = normalizedDuration;
+        if (_dwellTimer != null) {
+          final fromForeground = _dwellFromForeground;
+          _cancelDwellTimer();
+          if (_isInForeground && _rawVisible && !_isFocused) {
+            if (_minFocusDuration == Duration.zero) {
+              _confirmFocus(fromForeground: fromForeground);
+            } else {
+              _scheduleDwellTimer(fromForeground: fromForeground);
+            }
           }
         }
       }
@@ -334,6 +353,7 @@ class FocusStateMachine {
           visibleFraction: 0,
         );
         _onUnfocus?.call();
+        if (_disposed) return;
         _onVisibilityLost?.call();
       } else {
         if (_hasRouteMeasurement && _hasViewportMeasurement) {
@@ -380,6 +400,7 @@ class FocusStateMachine {
       visibleFraction: _effectiveFraction,
     );
     _onFocus?.call();
+    if (_disposed) return;
     if (fromForeground) {
       _onForegroundGained?.call();
     } else {

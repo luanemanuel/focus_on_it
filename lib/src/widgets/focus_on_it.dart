@@ -101,19 +101,20 @@ class _FocusOnItState extends State<FocusOnIt> {
   late final FocusStateMachine _stateMachine;
 
   final List<RenderOffstage> _watchedOffstages = [];
-  final List<({RenderIndexedStack stack, int childIndex})>
+  final List<({RenderIndexedStack stack, RenderObject child})>
       _watchedIndexedStacks = [];
 
   bool _tickerEnabled = true;
   bool _routeActive = true;
   bool _hasIndexedOrOffstageAncestor = false;
   bool _hasScopeDependents = false;
-  bool _suppressSetState = false;
   bool _disposing = false;
   bool _ancestorsCached = false;
   bool _lastHiddenByAncestor = false;
+  bool _pendingConfigSync = false;
   ModalRoute<dynamic>? _modalRoute;
   RenderOffstage? _modalRouteOffstage;
+  FocusVisibilityInfo? _lastVisibilityInfo;
   late FocusState _scopeSnapshot;
 
   @override
@@ -139,11 +140,6 @@ class _FocusOnItState extends State<FocusOnIt> {
       onStateChanged: _handleStateChanged,
     );
     _scopeSnapshot = _stateMachine.state;
-
-    final controller = widget.controller;
-    if (controller != null) {
-      updateFocusOnItController(controller, _stateMachine.state);
-    }
   }
 
   @override
@@ -154,72 +150,64 @@ class _FocusOnItState extends State<FocusOnIt> {
     _tickerEnabled = TickerMode.of(context);
     _modalRoute = ModalRoute.of(context);
     _routeActive = _resolveRouteActive();
-    final hadHiddenAncestor = _hasIndexedOrOffstageAncestor;
-    var hasHiddenAncestor = false;
-    RenderOffstage? modalRouteOffstage;
-    Widget? previousWidget;
-    context.visitAncestorElements((element) {
-      final ancestorWidget = element.widget;
-      if (ancestorWidget is Offstage && previousWidget is PageStorage) {
-        final renderObject = element.renderObject;
-        if (renderObject is RenderOffstage) {
-          modalRouteOffstage = renderObject;
-        }
-      } else if (ancestorWidget is IndexedStack || ancestorWidget is Offstage) {
-        hasHiddenAncestor = true;
-      }
-      previousWidget = ancestorWidget;
-      return true;
-    });
-    _modalRouteOffstage = modalRouteOffstage;
-    _hasIndexedOrOffstageAncestor = hasHiddenAncestor;
+    _refreshAncestorDependencies();
+    _scheduleRouteSync();
+  }
+
+  @override
+  void deactivate() {
     _ancestorsCached = false;
+    _hasIndexedOrOffstageAncestor = false;
     _watchedOffstages.clear();
     _watchedIndexedStacks.clear();
-    if (hasHiddenAncestor && !hadHiddenAncestor) {
-      _lifecycleTracker.addAncestorWatcher(_checkWatchedAncestorsOnFrame);
-    } else if (!hasHiddenAncestor && hadHiddenAncestor) {
-      _lifecycleTracker.removeAncestorWatcher(_checkWatchedAncestorsOnFrame);
-    }
+    _modalRoute = null;
+    _modalRouteOffstage = null;
+    _lifecycleTracker
+      ..cancelRouteSync(_flushRouteSync)
+      ..removeAncestorWatcher(_checkWatchedAncestorsOnFrame);
+    super.deactivate();
+  }
+
+  @override
+  void activate() {
+    super.activate();
+    _refreshAncestorDependencies();
     _scheduleRouteSync();
   }
 
   @override
   void didUpdateWidget(FocusOnIt oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _suppressSetState = true;
-    try {
-      _lifecycleTracker.updateCallbacks(widget.appLifecycle);
-      _stateMachine
-        ..updateCallbacks(
-          onFocus: widget.onFocus,
-          onUnfocus: widget.onUnfocus,
-          onVisibilityGained: widget.onVisibilityGained,
-          onVisibilityLost: widget.onVisibilityLost,
-          onForegroundGained: widget.onForegroundGained,
-          onForegroundLost: widget.onForegroundLost,
-          onStateChanged: _handleStateChanged,
-        )
-        ..updateConfig(
-          useViewport: widget.viewport != null,
-          minFocusDuration: widget.viewport?.minFocusDuration ?? Duration.zero,
-          applyDwellOnResume: widget.viewport?.applyDwellOnResume ?? false,
-          notifyOnDispose: widget.notifyOnDispose,
-        );
+    _lifecycleTracker.updateCallbacks(widget.appLifecycle);
+    _stateMachine
+      ..updateCallbacks(
+        onFocus: widget.onFocus,
+        onUnfocus: widget.onUnfocus,
+        onVisibilityGained: widget.onVisibilityGained,
+        onVisibilityLost: widget.onVisibilityLost,
+        onForegroundGained: widget.onForegroundGained,
+        onForegroundLost: widget.onForegroundLost,
+        onStateChanged: _handleStateChanged,
+      )
+      ..updateConfig(notifyOnDispose: widget.notifyOnDispose);
 
-      final controller = widget.controller;
-      if (controller != oldWidget.controller && controller != null) {
-        updateFocusOnItController(controller, _stateMachine.state);
-      }
+    if (widget.viewport == null) {
+      _lastVisibilityInfo = null;
+    }
 
-      if (widget.includeDialogs != oldWidget.includeDialogs) {
-        _routeActive = _resolveRouteActive();
-        _scheduleRouteSync();
-      } else if (_hasIndexedOrOffstageAncestor) {
-        _scheduleRouteSync();
-      }
-    } finally {
-      _suppressSetState = false;
+    final configChanged =
+        (widget.viewport != null) != (oldWidget.viewport != null) ||
+            widget.viewport?.threshold != oldWidget.viewport?.threshold ||
+            widget.viewport?.minFocusDuration !=
+                oldWidget.viewport?.minFocusDuration ||
+            widget.viewport?.applyDwellOnResume !=
+                oldWidget.viewport?.applyDwellOnResume ||
+            widget.controller != oldWidget.controller ||
+            widget.includeDialogs != oldWidget.includeDialogs;
+
+    if (configChanged || _hasIndexedOrOffstageAncestor) {
+      _pendingConfigSync = _pendingConfigSync || configChanged;
+      _scheduleRouteSync();
     }
   }
 
@@ -253,6 +241,36 @@ class _FocusOnItState extends State<FocusOnIt> {
     _lifecycleTracker.scheduleRouteSync(_flushRouteSync);
   }
 
+  void _refreshAncestorDependencies() {
+    final hadHiddenAncestor = _hasIndexedOrOffstageAncestor;
+    var hasHiddenAncestor = false;
+    RenderOffstage? modalRouteOffstage;
+    Widget? previousWidget;
+    context.visitAncestorElements((element) {
+      final ancestorWidget = element.widget;
+      if (ancestorWidget is Offstage && previousWidget is PageStorage) {
+        final renderObject = element.renderObject;
+        if (renderObject is RenderOffstage) {
+          modalRouteOffstage ??= renderObject;
+        }
+      } else if (ancestorWidget is IndexedStack || ancestorWidget is Offstage) {
+        hasHiddenAncestor = true;
+      }
+      previousWidget = ancestorWidget;
+      return true;
+    });
+    _modalRouteOffstage = modalRouteOffstage;
+    _hasIndexedOrOffstageAncestor = hasHiddenAncestor;
+    _ancestorsCached = false;
+    _watchedOffstages.clear();
+    _watchedIndexedStacks.clear();
+    if (hasHiddenAncestor && !hadHiddenAncestor) {
+      _lifecycleTracker.addAncestorWatcher(_checkWatchedAncestorsOnFrame);
+    } else if (!hasHiddenAncestor && hadHiddenAncestor) {
+      _lifecycleTracker.removeAncestorWatcher(_checkWatchedAncestorsOnFrame);
+    }
+  }
+
   void _checkWatchedAncestorsOnFrame() {
     if (!mounted || _disposing) return;
     if (!_ancestorsCached) {
@@ -275,13 +293,12 @@ class _FocusOnItState extends State<FocusOnIt> {
     if (!hidden) {
       for (var i = 0; i < _watchedIndexedStacks.length; i++) {
         final entry = _watchedIndexedStacks[i];
-        if (!entry.stack.attached) {
+        if (!entry.stack.attached || !entry.child.attached) {
           _ancestorsCached = false;
           _scheduleRouteSync();
           return;
         }
-        final activeIndex = entry.stack.index;
-        if (activeIndex == null || activeIndex != entry.childIndex) {
+        if (_isIndexedStackChildHidden(entry.stack, entry.child)) {
           hidden = true;
           break;
         }
@@ -292,12 +309,38 @@ class _FocusOnItState extends State<FocusOnIt> {
     }
   }
 
+  void _syncPendingConfig() {
+    if (!_pendingConfigSync) return;
+    _pendingConfigSync = false;
+    _stateMachine.updateConfig(
+      useViewport: widget.viewport != null,
+      minFocusDuration: widget.viewport?.minFocusDuration ?? Duration.zero,
+      applyDwellOnResume: widget.viewport?.applyDwellOnResume ?? false,
+    );
+  }
+
   void _flushRouteSync() {
     if (!mounted || _disposing) return;
+    _syncPendingConfig();
+    if (!mounted || _disposing) return;
+
+    _routeActive = _resolveRouteActive();
+    final info = _lastVisibilityInfo;
+    if (widget.viewport != null && info != null) {
+      _applyViewportVisibility(info);
+      if (!mounted || _disposing) return;
+    }
+
     final hidden = _hasIndexedOrOffstageAncestor && _isHiddenByAncestor();
     _lastHiddenByAncestor = hidden;
     final isRouteActive = _tickerEnabled && _routeActive && !hidden;
     _stateMachine.updateRouteActive(isRouteActive: isRouteActive);
+    if (!mounted || _disposing) return;
+
+    final controller = widget.controller;
+    if (controller != null) {
+      updateFocusOnItController(controller, _stateMachine.state);
+    }
   }
 
   bool _isHiddenByAncestor() {
@@ -315,12 +358,11 @@ class _FocusOnItState extends State<FocusOnIt> {
       if (cacheValid) {
         for (var i = 0; i < _watchedIndexedStacks.length; i++) {
           final entry = _watchedIndexedStacks[i];
-          if (!entry.stack.attached) {
+          if (!entry.stack.attached || !entry.child.attached) {
             cacheValid = false;
             break;
           }
-          final activeIndex = entry.stack.index;
-          if (activeIndex == null || activeIndex != entry.childIndex) {
+          if (_isIndexedStackChildHidden(entry.stack, entry.child)) {
             hidden = true;
           }
         }
@@ -349,19 +391,9 @@ class _FocusOnItState extends State<FocusOnIt> {
         }
       }
       if (parent is RenderIndexedStack) {
-        var child = parent.firstChild;
-        var childIndex = 0;
-        while (child != null) {
-          if (identical(child, node)) {
-            _watchedIndexedStacks.add((stack: parent, childIndex: childIndex));
-            final activeIndex = parent.index;
-            if (activeIndex == null || childIndex != activeIndex) {
-              isHidden = true;
-            }
-            break;
-          }
-          child = parent.childAfter(child);
-          childIndex++;
+        _watchedIndexedStacks.add((stack: parent, child: node));
+        if (_isIndexedStackChildHidden(parent, node)) {
+          isHidden = true;
         }
       }
       node = parent;
@@ -370,8 +402,35 @@ class _FocusOnItState extends State<FocusOnIt> {
     return isHidden;
   }
 
+  static bool _isIndexedStackChildHidden(
+    RenderIndexedStack stack,
+    RenderObject targetChild,
+  ) {
+    final activeIndex = stack.index;
+    if (activeIndex == null) return true;
+    var child = stack.firstChild;
+    var index = 0;
+    while (child != null) {
+      if (index == activeIndex) {
+        return !identical(child, targetChild);
+      }
+      child = stack.childAfter(child);
+      index++;
+    }
+    return true;
+  }
+
   void _handleViewportMeasured(FocusVisibilityInfo info) {
+    if (!mounted || _disposing || widget.viewport == null) return;
+    _syncPendingConfig();
+    if (!mounted || _disposing || widget.viewport == null) return;
+    _lastVisibilityInfo = info;
+    _applyViewportVisibility(info);
+    if (!mounted || _disposing) return;
     widget.viewport?.onVisibilityChanged?.call(info);
+  }
+
+  void _applyViewportVisibility(FocusVisibilityInfo info) {
     final threshold = widget.viewport?.threshold ?? 0.5;
     final isVisible = info.visibleFraction >= threshold - 1e-6;
     _stateMachine.updateViewport(
@@ -399,7 +458,7 @@ class _FocusOnItState extends State<FocusOnIt> {
     if (controller != null) {
       updateFocusOnItController(controller, nextState);
     }
-    if (_hasScopeDependents && !_disposing && !_suppressSetState && mounted) {
+    if (_hasScopeDependents && !_disposing && mounted) {
       setState(() {});
     }
   }

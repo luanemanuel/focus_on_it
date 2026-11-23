@@ -132,7 +132,7 @@ Each package runs in its own isolated test project with warm-up rounds and plain
   <img src="https://raw.githubusercontent.com/luanemanuel/focus_on_it/3.0.0-dev/assets/benchmarks/runtime_performance.png" alt="Runtime Build & Scroll Performance">
 </p>
 
-By default, Focus on It skips viewport math completely (`Fast Path`) and reacts on the next frame after route or dialog transitions. Enabling `viewport` runs batched scroll intersection checks only for the widgets that opt in. Raw stats and runner setup live in [benchmark/README.md](benchmark/README.md).
+By default, Focus on It skips viewport math completely (`Fast Path`) and reacts on the next frame after route or dialog transitions. Enabling `viewport` runs batched scroll intersection checks only for the widgets that opt in. Raw stats and runner setup live in [benchmark/README.md](https://github.com/luanemanuel/focus_on_it/blob/3.0.0-dev/benchmark/README.md).
 
 ## Trade-offs
 

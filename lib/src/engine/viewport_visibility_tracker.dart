@@ -65,6 +65,23 @@ class _ViewportVisibilityElement extends SingleChildRenderObjectElement {
   }
 
   @override
+  void deactivate() {
+    ViewportVisibilityHub()
+      ..removeMetricsListener(scheduleMeasurement)
+      ..cancelFlush(_measureVisibilityWithCache);
+    _detachScrollListeners();
+    super.deactivate();
+  }
+
+  @override
+  void activate() {
+    super.activate();
+    ViewportVisibilityHub().addMetricsListener(scheduleMeasurement);
+    _attachScrollListeners();
+    scheduleMeasurement();
+  }
+
+  @override
   void update(covariant SingleChildRenderObjectWidget newWidget) {
     super.update(newWidget);
     scheduleMeasurement();
@@ -114,8 +131,8 @@ class _ViewportVisibilityElement extends SingleChildRenderObjectElement {
     if (box is! RenderBox || !box.attached || !box.hasSize) return;
 
     final size = box.size;
-    if (size.isEmpty) {
-      _emitZeroIfChanged(size);
+    if (size.isEmpty || !size.isFinite) {
+      _emitZeroIfChanged(size.isFinite ? size : Size.zero);
       return;
     }
 
@@ -123,6 +140,10 @@ class _ViewportVisibilityElement extends SingleChildRenderObjectElement {
       box.getTransformTo(null),
       Offset.zero & size,
     );
+    if (!widgetRect.isFinite) {
+      _emitZeroIfChanged(size);
+      return;
+    }
 
     var clipRect = _resolveWindowBounds(windowBoundsCache) ?? widgetRect;
     for (final scrollable in _scrollables) {
@@ -131,11 +152,14 @@ class _ViewportVisibilityElement extends SingleChildRenderObjectElement {
       if (vpRect == null) {
         final vpRender = scrollable.context.findRenderObject();
         if (vpRender is RenderBox && vpRender.attached && vpRender.hasSize) {
-          vpRect = MatrixUtils.transformRect(
+          final resolved = MatrixUtils.transformRect(
             vpRender.getTransformTo(null),
             Offset.zero & vpRender.size,
           );
-          scrollableRectCache[scrollable] = vpRect;
+          if (resolved.isFinite) {
+            vpRect = resolved;
+            scrollableRectCache[scrollable] = resolved;
+          }
         }
       }
       if (vpRect != null) {
@@ -144,7 +168,8 @@ class _ViewportVisibilityElement extends SingleChildRenderObjectElement {
     }
 
     final intersection = widgetRect.intersect(clipRect);
-    if (intersection.isEmpty ||
+    if (!intersection.isFinite ||
+        intersection.isEmpty ||
         intersection.width <= 0 ||
         intersection.height <= 0) {
       _emitZeroIfChanged(size);
@@ -153,8 +178,12 @@ class _ViewportVisibilityElement extends SingleChildRenderObjectElement {
 
     final totalArea = widgetRect.width * widgetRect.height;
     final visibleArea = intersection.width * intersection.height;
-    final fraction =
-        (totalArea > 0 ? visibleArea / totalArea : 0.0).clamp(0.0, 1.0);
+    final rawFraction = totalArea > 0 ? visibleArea / totalArea : 0.0;
+    if (!rawFraction.isFinite) {
+      _emitZeroIfChanged(size);
+      return;
+    }
+    final fraction = rawFraction.clamp(0.0, 1.0);
     final localBounds = intersection.shift(-widgetRect.topLeft);
 
     _emitIfChanged(
@@ -168,13 +197,15 @@ class _ViewportVisibilityElement extends SingleChildRenderObjectElement {
 
   Rect? _resolveWindowBounds(Map<FlutterView, Rect> windowBoundsCache) {
     final view = _view;
-    if (view != null) {
-      return windowBoundsCache[view] ??=
-          Offset.zero & (view.physicalSize / view.devicePixelRatio);
+    if (view != null && view.devicePixelRatio > 0) {
+      final logicalSize = view.physicalSize / view.devicePixelRatio;
+      if (logicalSize.isFinite) {
+        return windowBoundsCache[view] ??= Offset.zero & logicalSize;
+      }
     }
     final mediaQuery =
         getElementForInheritedWidgetOfExactType<MediaQuery>()?.widget;
-    if (mediaQuery is MediaQuery) {
+    if (mediaQuery is MediaQuery && mediaQuery.data.size.isFinite) {
       return Offset.zero & mediaQuery.data.size;
     }
     return null;

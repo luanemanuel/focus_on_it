@@ -2,7 +2,7 @@ name: focus_on_it_example
 description: Example application demonstrating focus_on_it 3.0.0 features.
 publish_to: none
 
-version: 2.0.0
+version: 3.0.0-dev.2
 
 environment:
   sdk: '>=3.1.0 <4.0.0'
