@@ -41,6 +41,14 @@ class AppLifecycleTracker {
   /// Cancels a pending post-frame route sync [callback].
   void cancelRouteSync(VoidCallback callback) => _hub.cancelRouteSync(callback);
 
+  /// Registers [callback] to re-check ancestor visibility after frame builds.
+  void addAncestorWatcher(VoidCallback callback) =>
+      _hub.addAncestorWatcher(callback);
+
+  /// Unregisters a previously registered ancestor visibility [callback].
+  void removeAncestorWatcher(VoidCallback callback) =>
+      _hub.removeAncestorWatcher(callback);
+
   /// Updates the lifecycle callbacks, managing an exit listener only when used.
   void updateCallbacks(FocusAppLifecycleCallbacks? callbacks) {
     _callbacks = callbacks;

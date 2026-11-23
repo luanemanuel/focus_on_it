@@ -582,5 +582,181 @@ void main() {
 
       expect(events, ['focus']);
     });
+
+    testWidgets('clips visibility at ListView top below a fixed header bar',
+        (tester) async {
+      tester.view.physicalSize = const Size(400, 600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      final scrollController = ScrollController();
+      addTearDown(scrollController.dispose);
+
+      FocusVisibilityInfo? lastInfo;
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: Column(
+            children: [
+              const SizedBox(width: 400, height: 100),
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  children: [
+                    FocusOnIt(
+                      viewport: FocusViewportConfig(
+                        onVisibilityChanged: (info) => lastInfo = info,
+                      ),
+                      child: const SizedBox(width: 400, height: 200),
+                    ),
+                    const SizedBox(height: 800),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      expect(lastInfo?.visibleFraction, closeTo(1.0, 0.01));
+
+      // Scroll 120px past the ListView top edge (below the 100px header):
+      // 80px of the 200px child stays visible -> 0.40, not 0.90.
+      scrollController.jumpTo(120);
+      await tester.pump();
+
+      expect(lastInfo?.visibleFraction, closeTo(0.4, 0.01));
+    });
   });
+
+  group('FocusOnIt regression fixes', () {
+    testWidgets(
+        'pushed route with HeroController focuses immediately without rebuild',
+        (tester) async {
+      final navigatorKey = GlobalKey<NavigatorState>();
+      final pushedController = FocusOnItController();
+      addTearDown(pushedController.dispose);
+      final pushedEvents = <String>[];
+
+      await tester.pumpWidget(
+        WidgetsApp(
+          navigatorKey: navigatorKey,
+          navigatorObservers: [HeroController()],
+          color: const Color(0xFFFFFFFF),
+          pageRouteBuilder: <T>(settings, pageBuilder) => PageRouteBuilder<T>(
+            settings: settings,
+            pageBuilder: (context, _, __) => pageBuilder(context),
+          ),
+          home: const Text('Home'),
+        ),
+      );
+
+      navigatorKey.currentState!.push<void>(
+        PageRouteBuilder<void>(
+          transitionDuration: const Duration(milliseconds: 200),
+          pageBuilder: (_, __, ___) => FocusOnIt(
+            controller: pushedController,
+            onFocus: () => pushedEvents.add('focus'),
+            child: Builder(
+              builder: (context) =>
+                  Text('focused=${FocusOnIt.isFocusedOf(context)}'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(pushedEvents, ['focus']);
+      expect(pushedController.isFocused, isTrue);
+      expect(find.text('focused=true'), findsOneWidget);
+    });
+
+    testWidgets(
+        'IndexedStack with const children focuses active tab and switches '
+        'cleanly', (tester) async {
+      final tabTracker = _ConstTabTracker();
+      addTearDown(_ConstTabTracker.reset);
+      _ConstTabTracker.active = tabTracker;
+
+      var selectedTab = 0;
+      late StateSetter updateTab;
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: StatefulBuilder(
+            builder: (_, setState) {
+              updateTab = setState;
+              return IndexedStack(
+                index: selectedTab,
+                children: const [
+                  _ConstIndexedTab(index: 0),
+                  _ConstIndexedTab(index: 1),
+                  _ConstIndexedTab(index: 2),
+                ],
+              );
+            },
+          ),
+        ),
+      );
+
+      expect(tabTracker.focused, [true, false, false]);
+      expect(tabTracker.focusCounts, [1, 0, 0]);
+      expect(tabTracker.unfocusCounts, [0, 0, 0]);
+
+      updateTab(() => selectedTab = 1);
+      await tester.pump();
+
+      expect(tabTracker.focused, [false, true, false]);
+      expect(tabTracker.focusCounts, [1, 1, 0]);
+      expect(tabTracker.unfocusCounts, [1, 0, 0]);
+
+      updateTab(() => selectedTab = 2);
+      await tester.pump();
+
+      expect(tabTracker.focused, [false, false, true]);
+      expect(tabTracker.focusCounts, [1, 1, 1]);
+      expect(tabTracker.unfocusCounts, [1, 1, 0]);
+    });
+  });
+}
+
+class _ConstTabTracker {
+  static _ConstTabTracker? active;
+
+  final List<bool> focused = [false, false, false];
+  final List<int> focusCounts = [0, 0, 0];
+  final List<int> unfocusCounts = [0, 0, 0];
+
+  static void reset() {
+    active = null;
+  }
+}
+
+class _ConstIndexedTab extends StatelessWidget {
+  const _ConstIndexedTab({required this.index});
+
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    return FocusOnIt(
+      onFocus: () {
+        final tracker = _ConstTabTracker.active;
+        if (tracker == null) return;
+        tracker.focused[index] = true;
+        tracker.focusCounts[index]++;
+      },
+      onUnfocus: () {
+        final tracker = _ConstTabTracker.active;
+        if (tracker == null) return;
+        tracker.focused[index] = false;
+        tracker.unfocusCounts[index]++;
+      },
+      child: Text('Tab $index'),
+    );
+  }
 }

@@ -53,13 +53,30 @@ class SharedLifecycleHub {
   final WidgetsBinding _binding;
   final Map<Object, _Subscriber> _subscribers = {};
   final Set<VoidCallback> _pendingRouteSyncs = {};
+  final Set<VoidCallback> _ancestorWatchers = {};
   late final AppLifecycleListener _listener;
   AppLifecycleState? _lastState;
   late bool _isInForeground;
   bool _routeSyncFlushScheduled = false;
+  bool _persistentFrameCallbackRegistered = false;
 
   /// Whether the application is currently considered in the foreground.
   bool get isInForeground => _isInForeground;
+
+  /// Registers [callback] to be scheduled on frame updates while watching
+  /// ancestors such as `IndexedStack` or `Offstage`.
+  void addAncestorWatcher(VoidCallback callback) {
+    _ancestorWatchers.add(callback);
+    if (_persistentFrameCallbackRegistered) return;
+    _persistentFrameCallbackRegistered = true;
+    SchedulerBinding.instance
+        .addPersistentFrameCallback(_handlePersistentFrame);
+  }
+
+  /// Unregisters an ancestor visibility [callback].
+  void removeAncestorWatcher(VoidCallback callback) {
+    _ancestorWatchers.remove(callback);
+  }
 
   /// Enqueues [callback] to run once in the batched post-frame route sync.
   void scheduleRouteSync(VoidCallback callback) {
@@ -91,8 +108,16 @@ class SharedLifecycleHub {
     _subscribers.remove(token);
     if (_subscribers.isEmpty) {
       _pendingRouteSyncs.clear();
+      _ancestorWatchers.clear();
       _listener.dispose();
       _hubs.remove(_binding);
+    }
+  }
+
+  void _handlePersistentFrame(Duration _) {
+    if (_ancestorWatchers.isEmpty) return;
+    for (final callback in List<VoidCallback>.of(_ancestorWatchers)) {
+      scheduleRouteSync(callback);
     }
   }
 

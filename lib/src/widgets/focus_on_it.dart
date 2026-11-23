@@ -106,6 +106,7 @@ class _FocusOnItState extends State<FocusOnIt> {
   bool _hasScopeDependents = false;
   bool _suppressSetState = false;
   bool _disposing = false;
+  RenderOffstage? _modalRouteOffstage;
   late FocusState _scopeSnapshot;
 
   @override
@@ -144,16 +145,30 @@ class _FocusOnItState extends State<FocusOnIt> {
     // ignore: deprecated_member_use
     _tickerEnabled = TickerMode.of(context);
     _routeActive = _resolveRouteActive();
+    final hadHiddenAncestor = _hasIndexedOrOffstageAncestor;
     var hasHiddenAncestor = false;
+    RenderOffstage? modalRouteOffstage;
+    Widget? previousWidget;
     context.visitAncestorElements((element) {
       final ancestorWidget = element.widget;
-      if (ancestorWidget is IndexedStack || ancestorWidget is Offstage) {
+      if (ancestorWidget is Offstage && previousWidget is PageStorage) {
+        final renderObject = element.renderObject;
+        if (renderObject is RenderOffstage) {
+          modalRouteOffstage = renderObject;
+        }
+      } else if (ancestorWidget is IndexedStack || ancestorWidget is Offstage) {
         hasHiddenAncestor = true;
-        return false;
       }
+      previousWidget = ancestorWidget;
       return true;
     });
+    _modalRouteOffstage = modalRouteOffstage;
     _hasIndexedOrOffstageAncestor = hasHiddenAncestor;
+    if (hasHiddenAncestor && !hadHiddenAncestor) {
+      _lifecycleTracker.addAncestorWatcher(_flushRouteSync);
+    } else if (!hasHiddenAncestor && hadHiddenAncestor) {
+      _lifecycleTracker.removeAncestorWatcher(_flushRouteSync);
+    }
     _scheduleRouteSync();
   }
 
@@ -199,6 +214,7 @@ class _FocusOnItState extends State<FocusOnIt> {
   void dispose() {
     _disposing = true;
     _lifecycleTracker
+      ..removeAncestorWatcher(_flushRouteSync)
       ..cancelRouteSync(_flushRouteSync)
       ..dispose();
     _stateMachine.dispose();
@@ -231,7 +247,9 @@ class _FocusOnItState extends State<FocusOnIt> {
     var node = context.findRenderObject();
     while (node != null) {
       final parent = node.parent;
-      if (parent is RenderOffstage && parent.offstage) {
+      if (parent is RenderOffstage &&
+          parent.offstage &&
+          !identical(parent, _modalRouteOffstage)) {
         return true;
       }
       if (parent is RenderIndexedStack) {
