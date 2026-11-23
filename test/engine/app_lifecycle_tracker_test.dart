@@ -1,7 +1,9 @@
 import 'dart:ui';
 
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:focus_on_it/src/engine/app_lifecycle_tracker.dart';
+import 'package:focus_on_it/src/engine/shared_lifecycle_hub.dart';
 import 'package:focus_on_it/src/models/focus_app_lifecycle_callbacks.dart';
 
 void main() {
@@ -118,6 +120,39 @@ void main() {
       expect(firstHideCount, 0);
       expect(secondHideCount, 1);
       expect(foregroundEvents, [false]);
+    });
+
+    testWidgets(
+        'SharedLifecycleHub retains binding instance across full unmount and '
+        'resubscribe without leaking frame callbacks', (tester) async {
+      final hubA = SharedLifecycleHub(tester.binding);
+      var watchCalls = 0;
+
+      final trackerA = AppLifecycleTracker(
+        binding: tester.binding,
+        onForegroundChanged: (_) {},
+      )..addAncestorWatcher(() => watchCalls++);
+
+      SchedulerBinding.instance.scheduleFrame();
+      await tester.pump();
+      expect(watchCalls, 1);
+
+      trackerA.dispose();
+
+      final hubB = SharedLifecycleHub(tester.binding);
+      expect(identical(hubA, hubB), isTrue);
+
+      var secondWatchCalls = 0;
+      final trackerB = AppLifecycleTracker(
+        binding: tester.binding,
+        onForegroundChanged: (_) {},
+      )..addAncestorWatcher(() => secondWatchCalls++);
+      addTearDown(trackerB.dispose);
+
+      SchedulerBinding.instance.scheduleFrame();
+      await tester.pump();
+      expect(watchCalls, 1);
+      expect(secondWatchCalls, 1);
     });
   });
 }

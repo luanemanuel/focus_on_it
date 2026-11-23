@@ -107,12 +107,19 @@ void main() {
         threshold: 0.8,
         minFocusDuration: Duration(milliseconds: 250),
       );
+      final dwellOnResume = FocusViewportConfig(
+        applyDwellOnResume: true,
+        onVisibilityChanged: onChanged,
+      );
 
       expect(a.threshold, 0.5);
       expect(a.minFocusDuration, Duration.zero);
+      expect(a.applyDwellOnResume, isFalse);
       expect(a, equals(b));
       expect(a.hashCode, equals(b.hashCode));
       expect(a, isNot(equals(custom)));
+      expect(a, isNot(equals(dwellOnResume)));
+      expect(a.hashCode, isNot(equals(dwellOnResume.hashCode)));
     });
 
     test('validates threshold assertions', () {

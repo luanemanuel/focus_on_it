@@ -721,6 +721,111 @@ void main() {
       expect(tabTracker.focusCounts, [1, 1, 1]);
       expect(tabTracker.unfocusCounts, [1, 1, 0]);
     });
+
+    testWidgets(
+        'IndexedStack switches remain clean after full unmount and remount',
+        (tester) async {
+      final tracker = _ConstTabTracker();
+      addTearDown(_ConstTabTracker.reset);
+      _ConstTabTracker.active = tracker;
+
+      var selectedTab = 0;
+      late StateSetter updateTab;
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: StatefulBuilder(
+            builder: (_, setState) {
+              updateTab = setState;
+              return IndexedStack(
+                index: selectedTab,
+                children: const [
+                  _ConstIndexedTab(index: 0),
+                  _ConstIndexedTab(index: 1),
+                ],
+              );
+            },
+          ),
+        ),
+      );
+
+      expect(tracker.focusCounts, [1, 0, 0]);
+
+      // Unmount everything (emulates leaving route completely), then remount.
+      await tester.pumpWidget(const SizedBox.shrink());
+      selectedTab = 0;
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: StatefulBuilder(
+            builder: (_, setState) {
+              updateTab = setState;
+              return IndexedStack(
+                index: selectedTab,
+                children: const [
+                  _ConstIndexedTab(index: 0),
+                  _ConstIndexedTab(index: 1),
+                ],
+              );
+            },
+          ),
+        ),
+      );
+
+      expect(tracker.focusCounts, [2, 0, 0]);
+      updateTab(() => selectedTab = 1);
+      await tester.pump();
+      expect(tracker.focusCounts, [2, 1, 0]);
+      expect(tracker.focused, [false, true, false]);
+    });
+
+    testWidgets(
+        'ViewportVisibilityTracker handles MediaQuery updates without '
+        'registering post-frame dependency loops', (tester) async {
+      var viewInsetsBottom = 0.0;
+      late StateSetter updateInsets;
+      FocusVisibilityInfo? lastInfo;
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: StatefulBuilder(
+            builder: (_, setState) {
+              updateInsets = setState;
+              return MediaQuery(
+                data: MediaQueryData(
+                  size: const Size(400, 600),
+                  viewInsets: EdgeInsets.only(bottom: viewInsetsBottom),
+                ),
+                child: SizedBox(
+                  width: 400,
+                  height: 600,
+                  child: ListView(
+                    children: [
+                      FocusOnIt(
+                        viewport: FocusViewportConfig(
+                          onVisibilityChanged: (info) => lastInfo = info,
+                        ),
+                        child: const SizedBox(width: 400, height: 200),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+
+      expect(lastInfo?.visibleFraction, closeTo(1.0, 0.01));
+
+      updateInsets(() => viewInsetsBottom = 200);
+      await tester.pump();
+      await tester.pump();
+
+      expect(lastInfo?.visibleFraction, closeTo(1.0, 0.01));
+    });
   });
 }
 

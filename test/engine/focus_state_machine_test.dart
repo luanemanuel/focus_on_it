@@ -287,5 +287,108 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
       expect(focusCount, 0);
     });
+
+    testWidgets(
+        'triggerOnInit: false with useViewport suppresses initial onFocus even '
+        'when route activates before first viewport measurement',
+        (tester) async {
+      final events = <String>[];
+      final machine = FocusStateMachine(
+        useViewport: true,
+        triggerOnInit: false,
+        onFocus: () => events.add('focus'),
+        onUnfocus: () => events.add('unfocus'),
+        onVisibilityGained: () => events.add('visGained'),
+        onVisibilityLost: () => events.add('visLost'),
+      )..updateRouteActive(isRouteActive: true);
+      addTearDown(machine.dispose);
+
+      expect(events, isEmpty);
+      expect(machine.isFocused, isFalse);
+
+      machine.updateViewport(isViewportVisible: true, visibleFraction: 0.9);
+      expect(events, isEmpty);
+      expect(machine.isFocused, isTrue);
+
+      machine
+        ..updateViewport(isViewportVisible: false, visibleFraction: 0.1)
+        ..updateViewport(isViewportVisible: true, visibleFraction: 0.9);
+      expect(events, ['unfocus', 'visLost', 'focus', 'visGained']);
+    });
+
+    testWidgets(
+        'keeps machine.isVisible in sync with state.isVisible when '
+        'backgrounded during active dwell timer', (tester) async {
+      final machine = FocusStateMachine(
+        useViewport: true,
+        minFocusDuration: const Duration(milliseconds: 300),
+      )
+        ..updateRouteActive(isRouteActive: true)
+        ..updateViewport(isViewportVisible: true, visibleFraction: 0.8);
+      addTearDown(machine.dispose);
+
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(machine.isFocused, isFalse);
+      expect(machine.isVisible, isFalse);
+
+      machine.updateForeground(isInForeground: false);
+      expect(machine.state.isVisible, isTrue);
+      expect(machine.isVisible, equals(machine.state.isVisible));
+
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(machine.isFocused, isFalse);
+    });
+
+    testWidgets(
+        'respects applyDwellOnResume false vs true when returning from '
+        'background', (tester) async {
+      final immediateEvents = <String>[];
+      final immediate = FocusStateMachine(
+        useViewport: true,
+        minFocusDuration: const Duration(milliseconds: 300),
+        onFocus: () => immediateEvents.add('focus'),
+        onForegroundGained: () => immediateEvents.add('fgGained'),
+      )
+        ..updateRouteActive(isRouteActive: true)
+        ..updateViewport(isViewportVisible: true, visibleFraction: 0.8);
+      addTearDown(immediate.dispose);
+
+      await tester.pump(const Duration(milliseconds: 300));
+      immediateEvents.clear();
+
+      immediate
+        ..updateForeground(isInForeground: false)
+        ..updateForeground(isInForeground: true);
+      expect(immediateEvents, ['focus', 'fgGained']);
+      expect(immediate.isFocused, isTrue);
+
+      final delayedEvents = <String>[];
+      final delayed = FocusStateMachine(
+        useViewport: true,
+        minFocusDuration: const Duration(milliseconds: 300),
+        applyDwellOnResume: true,
+        onFocus: () => delayedEvents.add('focus'),
+        onForegroundGained: () => delayedEvents.add('fgGained'),
+      )
+        ..updateRouteActive(isRouteActive: true)
+        ..updateViewport(isViewportVisible: true, visibleFraction: 0.8);
+      addTearDown(delayed.dispose);
+
+      await tester.pump(const Duration(milliseconds: 300));
+      delayedEvents.clear();
+
+      delayed
+        ..updateForeground(isInForeground: false)
+        ..updateForeground(isInForeground: true);
+      expect(delayedEvents, isEmpty);
+      expect(delayed.isFocused, isFalse);
+
+      await tester.pump(const Duration(milliseconds: 299));
+      expect(delayedEvents, isEmpty);
+
+      await tester.pump(const Duration(milliseconds: 1));
+      expect(delayedEvents, ['focus', 'fgGained']);
+      expect(delayed.isFocused, isTrue);
+    });
   });
 }
