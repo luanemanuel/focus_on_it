@@ -8,6 +8,7 @@ class FocusViewportConfig {
   const FocusViewportConfig({
     this.threshold = 0.5,
     this.minFocusDuration = Duration.zero,
+    this.applyDwellOnResume = false,
     this.onVisibilityChanged,
   }) : assert(
           threshold > 0.0 && threshold <= 1.0,
@@ -20,6 +21,10 @@ class FocusViewportConfig {
   /// Minimum continuous time above [threshold] before focus is confirmed.
   final Duration minFocusDuration;
 
+  /// Whether [minFocusDuration] also applies when returning from the
+  /// background. Defaults to `false` so visible widgets resume immediately.
+  final bool applyDwellOnResume;
+
   /// Called whenever viewport visibility bounds or fraction change.
   final ValueChanged<FocusVisibilityInfo>? onVisibilityChanged;
 
@@ -29,6 +34,7 @@ class FocusViewportConfig {
     return other is FocusViewportConfig &&
         other.threshold == threshold &&
         other.minFocusDuration == minFocusDuration &&
+        other.applyDwellOnResume == applyDwellOnResume &&
         other.onVisibilityChanged == onVisibilityChanged;
   }
 
@@ -36,6 +42,7 @@ class FocusViewportConfig {
   int get hashCode => Object.hash(
         threshold,
         minFocusDuration,
+        applyDwellOnResume,
         onVisibilityChanged,
       );
 }
