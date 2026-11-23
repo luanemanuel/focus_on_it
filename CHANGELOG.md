@@ -1,3 +1,19 @@
+## 3.0.0-dev.2
+
+### Bug Fixes
+- **Hub lifecycle memory leak (`SharedLifecycleHub`):** moved hub tracking to `Expando<SharedLifecycleHub>` with lazy `AppLifecycleListener` attachment and a single persistent frame callback per binding, avoiding stale callback retention when all widgets unmount.
+- **`triggerOnInit: false` + `viewport` race condition:** deferred initial setup completion until both route and first viewport measurements arrive, preventing unexpected initial `onFocus` callbacks.
+- **Dwell timer visibility state sync:** kept `FocusStateMachine.isVisible` aligned with `state.isVisible` when backgrounded while a dwell timer is running.
+- **No post-frame `InheritedWidget` dependencies:** cached `FlutterView` inside `mount`/`didChangeDependencies` and switched fallback `MediaQuery` reads to non-subscribing lookups inside `ViewportVisibilityTracker`.
+- **Resilient `ModalRoute` offstage handling & O(1) ancestor cache:** added `ModalRoute` offstage state fallback for hero transitions and cached ancestor `RenderIndexedStack` / `RenderOffstage` lookups to avoid per-frame tree walks.
+
+### Features
+- **Configurable dwell on resume (`FocusViewportConfig.applyDwellOnResume`):** defaults to `false` for immediate resume when returning from background, with opt-in `true` for impression/analytics dwell behavior.
+
+### Documentation & Benchmarks
+- Updated benchmark chart framing (`No 500ms timer`, neutral dialog scope pills, and direct scroll comparison between `3.0 (Viewport)` and `visibility_detector`).
+- Added a `Limitations & trade-offs` section to `README.md` covering paint-only animations, non-`Scrollable` clips/`Stack` overlays, rotated AABBs, and `IndexedStack`/`Offstage` watcher costs.
+
 ## 3.0.0-dev.1
 
 ### BREAKING CHANGES

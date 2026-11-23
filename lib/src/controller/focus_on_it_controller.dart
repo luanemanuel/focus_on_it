@@ -4,6 +4,7 @@ import 'package:focus_on_it/src/models/focus_state.dart';
 /// Controller that exposes reactive [FocusState] updates for a `FocusOnIt`.
 class FocusOnItController extends ValueNotifier<FocusState> {
   /// Creates a [FocusOnItController] with an optional initial [value].
+  // ignore: matching_super_parameters
   FocusOnItController([super.value = FocusState.initial]);
 
   /// Whether the tracked widget currently has focus.

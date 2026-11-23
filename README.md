@@ -23,14 +23,14 @@ Wrap any screen or widget to pause videos, mute audio, stop camera previews, or 
 Add it with Flutter:
 
 ```sh
-flutter pub add focus_on_it:^3.0.0-dev.1
+flutter pub add focus_on_it:^3.0.0-dev.2
 ```
 
 Or add it to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  focus_on_it: ^3.0.0-dev.1
+  focus_on_it: ^3.0.0-dev.2
 ```
 
 Then import it:
@@ -79,7 +79,7 @@ FocusOnIt(
 )
 ```
 
-`threshold` sets the minimum visible fraction in `[0.0, 1.0]` before the widget counts as visible (defaults to `0.5`, and still triggers even when a widget is taller than the screen). `minFocusDuration` waits for the widget to stay above `threshold` for that long before firing `onFocus`, which helps ignore quick flings.
+`threshold` sets the minimum visible fraction in `(0.0, 1.0]` before the widget counts as visible (defaults to `0.5`, and still triggers even when a widget is taller than the screen). `minFocusDuration` waits for the widget to stay above `threshold` for that long before firing `onFocus`, which helps ignore quick flings. By default `applyDwellOnResume` is `false` so visible widgets resume right away when returning from the background; set it to `true` if `minFocusDuration` should re-apply on foreground return too.
 
 ## Reading focus state
 
@@ -141,6 +141,17 @@ Each package runs in its own isolated test project with warm-up rounds and plain
 By default, Focus on It skips viewport math completely (`Fast Path`) and triggers on the next frame after a route or dialog transition, keeping scroll frames light. Turning on `viewport` enables per-frame scroll intersection checks only for the widgets that ask for it.
 
 Full runner setup and raw numbers live in [benchmark/README.md](benchmark/README.md).
+
+## Limitations & trade-offs
+
+Focus on It trades full render-layer inspection for lower overhead on normal screens and feeds. Keep these boundaries in mind when choosing how to wire it:
+
+- **Paint-only animations:** transforms that skip layout and scroll (`SlideTransition`, `Transform.translate`) won't re-measure `viewport` bounds until the next layout or scroll event.
+- **Non-scrollable clips & `Stack` overlays:** `ClipRect`, `ClipRRect`, `OverflowBox`, and sibling overlays inside a `Stack` (outside `Navigator` routes/dialogs) are not factored into visibility fractions.
+- **Rotated widgets:** `Transform.rotate` bounds use an axis-aligned bounding box (AABB), which can overestimate the visible area at angled rotations.
+- **`IndexedStack` & `Offstage`:** unlike routes (strictly event-driven), widgets inside an `IndexedStack` or `Offstage` run a tiny O(1) cached ancestor check per frame to catch non-rebuilding switches (`const` tab lists).
+
+If your app needs pixel-accurate occlusion across nested clips, arbitrary overlays, or animated transforms, `visibility_detector` is still a solid choice.
 
 ## Upgrading from 2.x
 

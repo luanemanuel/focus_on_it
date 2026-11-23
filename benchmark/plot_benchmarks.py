@@ -144,8 +144,9 @@ def _draw_metric_panel(
     px: float,
     panel_title: str,
     rows: list[tuple[str, float, float]],
-    show_speedup_against: float | None = None,
+    show_no_timer_badge: bool = False,
     highlight_fastest_v3: bool = False,
+    row_badges: dict[str, tuple[str, str, str, str]] | None = None,
 ) -> None:
     ax.text(
         px,
@@ -164,7 +165,7 @@ def _draw_metric_panel(
 
     label_x = px + 178
     bar_x = px + 190
-    bar_max_w = 156
+    bar_max_w = 92 if row_badges else 156
     bar_h = 20
     row_ys = [330, 282, 234, 186, 138, 90]
 
@@ -176,7 +177,9 @@ def _draw_metric_panel(
         zorder=1,
     )
 
-    pending_secondary: list[tuple[plt.Text, bool, bool, float, float, float]] = []
+    pending_secondary: list[
+        tuple[plt.Text, bool, tuple[str, str, str, str] | None, float, float]
+    ] = []
 
     for (key, med, p95), cy in zip(ordered, row_ys):
         is_v3 = '3.0' in key
@@ -216,27 +219,28 @@ def _draw_metric_panel(
             ha='left',
             va='center',
         )
-        show_badge = bool(show_speedup_against and is_v3 and med > 0)
-        show_fastest = bool(highlight_fastest_v3 and is_v3 and is_best)
-        pending_secondary.append(
-            (primary_txt, show_badge, show_fastest, med, p95, cy)
-        )
+        show_timer_pill = bool(show_no_timer_badge and is_v3)
+        badge = row_badges.get(key) if row_badges else None
+        if badge is None and highlight_fastest_v3 and is_v3 and is_best:
+            badge = ('Fastest', '#EFF6FF', '#BFDBFE', '#1D4ED8')
+        pending_secondary.append((primary_txt, show_timer_pill, badge, p95, cy))
 
     ax.figure.canvas.draw()
     renderer = ax.figure.canvas.get_renderer()
     inv = ax.transData.inverted()
 
-    pending_fastest: list[tuple[plt.Text, float]] = []
-    for primary_txt, show_badge, show_fastest, med, p95, cy in pending_secondary:
+    pending_row_badges: list[
+        tuple[plt.Text, tuple[str, str, str, str], float]
+    ] = []
+    for primary_txt, show_timer_pill, badge, p95, cy in pending_secondary:
         x1 = inv.transform_bbox(primary_txt.get_window_extent(renderer)).x1
         next_x = x1 + 9
-        if show_badge and show_speedup_against is not None:
-            ratio = show_speedup_against / med
+        if show_timer_pill:
             _draw_pill(
                 ax,
                 x=next_x,
                 y=cy - 9,
-                w=82,
+                w=108,
                 h=18,
                 radius=9,
                 facecolor='#EFF6FF',
@@ -245,10 +249,10 @@ def _draw_metric_panel(
                 zorder=2,
             )
             ax.text(
-                next_x + 41,
+                next_x + 54,
                 cy,
-                f'{ratio:.0f}x faster',
-                fontsize=7.9,
+                'No 500ms timer',
+                fontsize=7.8,
                 fontweight='bold',
                 color='#1D4ED8',
                 ha='center',
@@ -265,34 +269,35 @@ def _draw_metric_panel(
                 ha='left',
                 va='center',
             )
-            if show_fastest:
-                pending_fastest.append((sec_txt, cy))
+            if badge is not None:
+                pending_row_badges.append((sec_txt, badge, cy))
 
-    if pending_fastest:
+    if pending_row_badges:
         ax.figure.canvas.draw()
         renderer = ax.figure.canvas.get_renderer()
-        for sec_txt, cy in pending_fastest:
+        for sec_txt, (b_label, b_fill, b_edge, b_text), cy in pending_row_badges:
             sec_x1 = inv.transform_bbox(sec_txt.get_window_extent(renderer)).x1
-            pill_x = sec_x1 + 9
+            pill_x = sec_x1 + 8
+            pill_w = max(58.0, len(b_label) * 6.1 + 18.0)
             _draw_pill(
                 ax,
                 x=pill_x,
                 y=cy - 9,
-                w=56,
+                w=pill_w,
                 h=18,
                 radius=9,
-                facecolor='#EFF6FF',
-                edgecolor='#BFDBFE',
+                facecolor=b_fill,
+                edgecolor=b_edge,
                 linewidth=0.8,
                 zorder=2,
             )
             ax.text(
-                pill_x + 28,
+                pill_x + pill_w / 2,
                 cy,
-                'Fastest',
-                fontsize=7.8,
+                b_label,
+                fontsize=7.6,
                 fontweight='bold',
-                color='#1D4ED8',
+                color=b_text,
                 ha='center',
                 va='center',
                 zorder=4,
@@ -398,6 +403,7 @@ def _draw_dialog_panel(
             )
             pending_p95.append((primary_txt, p95, cy))
         else:
+            is_geometry_lib = key == 'visibility_detector'
             _draw_pill(
                 ax,
                 x=bar_x,
@@ -405,18 +411,18 @@ def _draw_dialog_panel(
                 w=118,
                 h=20,
                 radius=4,
-                facecolor='#FEF2F2',
-                edgecolor='#FECACA',
+                facecolor='#F1F5F9' if is_geometry_lib else '#FFFBEB',
+                edgecolor='#CBD5E1' if is_geometry_lib else '#FDE68A',
                 linewidth=0.8,
                 zorder=2,
             )
             ax.text(
                 bar_x + 59,
                 cy,
-                'Not detected',
-                fontsize=8.4,
+                'Geometry only' if is_geometry_lib else 'No dialog event',
+                fontsize=8.3,
                 fontweight='bold',
-                color='#B91C1C',
+                color='#475569' if is_geometry_lib else '#B45309',
                 ha='center',
                 va='center',
                 zorder=4,
@@ -457,11 +463,10 @@ def render_detection_speed(data: dict) -> None:
     _draw_header(
         ax,
         title='Focus Detection Speed & Dialog Coverage',
-        subtitle=f'Median (p50) across n={lat_n} isolated runs · default production intervals · lower is better',
+        subtitle=f'Event-driven route detection vs default 500ms visibility debounce · n={lat_n} · lower is better',
         footer=f'Isolated runners with warm-up · Dart {dart_ver} ({cores} CPU cores) · raw stats in benchmark/results.json',
     )
 
-    v2_route_median = by_name['focus_on_it 2.0.1']['route_latency_ms']['median']
     route_rows = [
         (
             r['name'],
@@ -475,7 +480,7 @@ def render_detection_speed(data: dict) -> None:
         px=30,
         panel_title='Route Unfocus Latency (Navigator.push)',
         rows=route_rows,
-        show_speedup_against=v2_route_median,
+        show_no_timer_badge=True,
     )
 
     _draw_dialog_panel(
@@ -535,6 +540,7 @@ def render_runtime_performance(data: dict) -> None:
         highlight_fastest_v3=True,
     )
 
+    by_name = {r['name']: r for r in records}
     scroll_rows = [
         (
             r['name'],
@@ -543,12 +549,33 @@ def render_runtime_performance(data: dict) -> None:
         )
         for r in records
     ]
+    scroll_badges: dict[str, tuple[str, str, str, str]] = {
+        'focus_on_it 3.0 (Fast Path)': (
+            'Route-only',
+            '#EFF6FF',
+            '#BFDBFE',
+            '#1D4ED8',
+        ),
+    }
+    vp_scroll = by_name['focus_on_it 3.0 (Viewport)']['scroll_frame_100_ms'][
+        'median'
+    ]
+    vd_scroll = by_name['visibility_detector']['scroll_frame_100_ms']['median']
+    if vd_scroll > vp_scroll > 0:
+        pct = (1.0 - vp_scroll / vd_scroll) * 100
+        scroll_badges['focus_on_it 3.0 (Viewport)'] = (
+            f'-{pct:.0f}% vs vis_det',
+            '#ECFEFF',
+            '#A5F3FC',
+            '#0E7490',
+        )
+
     _draw_metric_panel(
         ax,
         px=588,
         panel_title=f'Scroll Frame Cost · {scroll_w} Widgets (n={scroll_n})',
         rows=scroll_rows,
-        highlight_fastest_v3=True,
+        row_badges=scroll_badges,
     )
 
     plt.subplots_adjust(left=0, right=1, top=1, bottom=0)

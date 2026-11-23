@@ -1,6 +1,6 @@
 name: focus_on_it
 description: Zero-dependency Flutter package to detect widget focus, route visibility, viewport visibility, and app lifecycle changes with frame-accurate precision.
-version: 3.0.0-dev.1
+version: 3.0.0-dev.2
 repository: https://github.com/luanemanuel/focus_on_it
 issue_tracker: https://github.com/luanemanuel/focus_on_it/issues
 
@@ -22,4 +22,4 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  very_good_analysis: ^7.0.0
+  very_good_analysis: ^11.0.0

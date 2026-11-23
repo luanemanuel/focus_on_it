@@ -10,30 +10,30 @@
   "scroll_samples_count": 120,
   "scroll_widgets_count": 100,
   "route_latency_ms": {
-    "median": 500.119,
-    "mean": 500.122,
-    "stddev": 0.015,
-    "p95": 500.152,
-    "min": 500.097,
-    "max": 500.161
+    "median": 500.123,
+    "mean": 500.129,
+    "stddev": 0.025,
+    "p95": 500.177,
+    "min": 500.099,
+    "max": 500.184
   },
   "dialog_detection_ms": {
     "supported": false
   },
   "mount_unmount_250_ms": {
-    "median": 10.88,
-    "mean": 11.155,
-    "stddev": 2.614,
-    "p95": 15.04,
-    "min": 7.76,
-    "max": 15.621
+    "median": 11.525,
+    "mean": 11.359,
+    "stddev": 2.63,
+    "p95": 14.723,
+    "min": 7.238,
+    "max": 16.757
   },
   "scroll_frame_100_ms": {
-    "median": 0.553,
-    "mean": 0.571,
-    "stddev": 0.119,
-    "p95": 0.857,
-    "min": 0.44,
-    "max": 1.077
+    "median": 0.538,
+    "mean": 0.566,
+    "stddev": 0.187,
+    "p95": 0.775,
+    "min": 0.421,
+    "max": 2.089
   }
 }
