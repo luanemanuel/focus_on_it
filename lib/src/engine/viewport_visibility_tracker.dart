@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
+import 'package:focus_on_it/src/engine/viewport_geometry.dart';
 import 'package:focus_on_it/src/engine/viewport_visibility_hub.dart';
 import 'package:focus_on_it/src/models/focus_visibility_info.dart';
 
@@ -24,7 +25,7 @@ class ViewportVisibilityTracker extends SingleChildRenderObjectWidget {
   @override
   RenderObject createRenderObject(BuildContext context) {
     return _RenderViewportVisibility(
-      onLayoutPerformed:
+      onNeedsMeasurement:
           (context as _ViewportVisibilityElement).scheduleMeasurement,
     );
   }
@@ -34,7 +35,7 @@ class ViewportVisibilityTracker extends SingleChildRenderObjectWidget {
     BuildContext context,
     covariant RenderObject renderObject,
   ) {
-    (renderObject as _RenderViewportVisibility).onLayoutPerformed =
+    (renderObject as _RenderViewportVisibility).onNeedsMeasurement =
         (context as _ViewportVisibilityElement).scheduleMeasurement;
   }
 }
@@ -125,6 +126,7 @@ class _ViewportVisibilityElement extends SingleChildRenderObjectElement {
   void _measureVisibilityWithCache(
     Map<ScrollableState, Rect> scrollableRectCache,
     Map<FlutterView, Rect> windowBoundsCache,
+    Map<RenderObject, Matrix4> ancestorTransformCache,
   ) {
     if (!mounted) return;
     final box = renderObject;
@@ -136,16 +138,24 @@ class _ViewportVisibilityElement extends SingleChildRenderObjectElement {
       return;
     }
 
-    final widgetRect = MatrixUtils.transformRect(
-      box.getTransformTo(null),
-      Offset.zero & size,
-    );
-    if (!widgetRect.isFinite) {
+    final transform = box.getTransformTo(null);
+    final isAxisAligned = isAxisAlignedTransform(transform);
+    final axisRect = isAxisAligned
+        ? MatrixUtils.transformRect(transform, Offset.zero & size)
+        : null;
+    if (axisRect != null && !axisRect.isFinite) {
       _emitZeroIfChanged(size);
       return;
     }
 
-    var clipRect = _resolveWindowBounds(windowBoundsCache) ?? widgetRect;
+    var clipRect = _resolveWindowBounds(windowBoundsCache) ??
+        axisRect ??
+        MatrixUtils.transformRect(transform, Offset.zero & size);
+    if (!clipRect.isFinite || clipRect.isEmpty) {
+      _emitZeroIfChanged(size);
+      return;
+    }
+
     for (final scrollable in _scrollables) {
       if (!scrollable.mounted) continue;
       var vpRect = scrollableRectCache[scrollable];
@@ -164,33 +174,87 @@ class _ViewportVisibilityElement extends SingleChildRenderObjectElement {
       }
       if (vpRect != null) {
         clipRect = clipRect.intersect(vpRect);
+        if (clipRect.isEmpty || clipRect.width <= 0 || clipRect.height <= 0) {
+          _emitZeroIfChanged(size);
+          return;
+        }
       }
     }
 
-    final intersection = widgetRect.intersect(clipRect);
-    if (!intersection.isFinite ||
-        intersection.isEmpty ||
-        intersection.width <= 0 ||
-        intersection.height <= 0) {
-      _emitZeroIfChanged(size);
+    RenderObject node = box;
+    var parent = node.parent;
+    while (parent != null) {
+      final localClip = parent.describeApproximatePaintClip(node);
+      if (localClip != null) {
+        if (localClip.isEmpty) {
+          _emitZeroIfChanged(size);
+          return;
+        }
+        if (localClip.isFinite) {
+          final parentTransform =
+              ancestorTransformCache[parent] ??= parent.getTransformTo(null);
+          final globalClip =
+              MatrixUtils.transformRect(parentTransform, localClip);
+          if (globalClip.isFinite) {
+            clipRect = clipRect.intersect(globalClip);
+            if (clipRect.isEmpty ||
+                clipRect.width <= 0 ||
+                clipRect.height <= 0) {
+              _emitZeroIfChanged(size);
+              return;
+            }
+          }
+        }
+      }
+      node = parent;
+      parent = parent.parent;
+    }
+
+    if (axisRect != null) {
+      final intersection = axisRect.intersect(clipRect);
+      if (!intersection.isFinite ||
+          intersection.isEmpty ||
+          intersection.width <= 0 ||
+          intersection.height <= 0) {
+        _emitZeroIfChanged(size);
+        return;
+      }
+
+      final totalArea = axisRect.width * axisRect.height;
+      final visibleArea = intersection.width * intersection.height;
+      final rawFraction = totalArea > 0 ? visibleArea / totalArea : 0.0;
+      if (!rawFraction.isFinite) {
+        _emitZeroIfChanged(size);
+        return;
+      }
+      final fraction = rawFraction.clamp(0.0, 1.0);
+      final localBounds = intersection.shift(-axisRect.topLeft);
+
+      _emitIfChanged(
+        FocusVisibilityInfo(
+          visibleFraction: fraction,
+          size: size,
+          visibleBounds: localBounds,
+        ),
+      );
       return;
     }
 
-    final totalArea = widgetRect.width * widgetRect.height;
-    final visibleArea = intersection.width * intersection.height;
-    final rawFraction = totalArea > 0 ? visibleArea / totalArea : 0.0;
-    if (!rawFraction.isFinite) {
+    final rotated = computeRotatedVisibility(
+      size: size,
+      transform: transform,
+      clipRect: clipRect,
+    );
+    if (rotated.visibleFraction <= 0) {
       _emitZeroIfChanged(size);
       return;
     }
-    final fraction = rawFraction.clamp(0.0, 1.0);
-    final localBounds = intersection.shift(-widgetRect.topLeft);
 
     _emitIfChanged(
       FocusVisibilityInfo(
-        visibleFraction: fraction,
+        visibleFraction: rotated.visibleFraction,
         size: size,
-        visibleBounds: localBounds,
+        visibleBounds: rotated.visibleBounds,
       ),
     );
   }
@@ -237,14 +301,20 @@ class _ViewportVisibilityElement extends SingleChildRenderObjectElement {
 
 class _RenderViewportVisibility extends RenderProxyBox {
   _RenderViewportVisibility({
-    required this.onLayoutPerformed,
+    required this.onNeedsMeasurement,
   });
 
-  VoidCallback onLayoutPerformed;
+  VoidCallback onNeedsMeasurement;
 
   @override
   void performLayout() {
     super.performLayout();
-    onLayoutPerformed();
+    onNeedsMeasurement();
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    onNeedsMeasurement();
+    super.paint(context, offset);
   }
 }

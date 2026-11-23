@@ -136,12 +136,12 @@ By default, Focus on It skips viewport math completely (`Fast Path`) and reacts 
 
 ## Trade-offs
 
-Focus on It avoids polling timers and full render-layer traversals to keep normal screens and feeds fast. Because of that:
+Focus on It avoids polling timers and full layer-tree traversals to keep normal screens and feeds fast. Because of that:
 
-- Paint-only animations (`SlideTransition`, `Transform.translate`) don't re-measure `viewport` bounds until the next layout or scroll tick.
-- Non-scrollable clips (`ClipRect`, `ClipRRect`, `OverflowBox`) and sibling overlays inside a `Stack` (outside `Navigator` routes/dialogs) don't count toward visibility fractions.
-- Rotated widgets (`Transform.rotate`) use an axis-aligned bounding box, which overestimates the visible area at angled rotations.
-- Widgets inside `IndexedStack` or `Offstage` run a small cached ancestor check per frame to catch non-rebuilding switches such as `const` tab lists, whereas regular routes stay purely event-driven.
+- Non-scrollable clips (`ClipRect`, `ClipRRect`, `ClipOval`, `ClipPath`), rotated targets, and paint-only animations (`SlideTransition`, `Transform.translate`) are measured automatically in `viewport` mode unless an intervening `RepaintBoundary` sits above `FocusOnIt`, in which case compositor transforms don't repaint the child.
+- Rounded or custom clip shapes (`ClipRRect`, `ClipOval`, `ClipPath`) are intersected using their bounding rectangle rather than pixel masks.
+- Sibling overlays inside a `Stack` (outside `Navigator` routes and dialogs) don't subtract occlusion automatically; wrap underlying widgets with `TickerMode(enabled: false)` when custom in-app barriers cover them.
+- Widgets inside `IndexedStack` or `Offstage` run a small cached ancestor check per rendered frame to catch non-rebuilding switches such as `const` tab lists, whereas regular routes stay purely event-driven.
 
 ## Example
 

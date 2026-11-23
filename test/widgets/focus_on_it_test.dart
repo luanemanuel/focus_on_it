@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:focus_on_it/focus_on_it.dart';
@@ -1268,6 +1270,135 @@ void main() {
         expect(controller.isFocused, isTrue);
       },
     );
+
+    testWidgets('clips visibility inside non-scrollable ClipRect',
+        (tester) async {
+      FocusVisibilityInfo? lastInfo;
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: ClipRect(
+              child: SizedBox(
+                width: 100,
+                height: 200,
+                child: OverflowBox(
+                  maxWidth: 200,
+                  alignment: Alignment.centerLeft,
+                  child: FocusOnIt(
+                    viewport: FocusViewportConfig(
+                      onVisibilityChanged: (info) => lastInfo = info,
+                    ),
+                    child: const SizedBox(width: 200, height: 200),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(lastInfo?.visibleFraction, closeTo(0.5, 0.01));
+      expect(lastInfo?.visibleBounds.width, closeTo(100, 0.5));
+    });
+
+    testWidgets('computes exact visible area for rotated widgets',
+        (tester) async {
+      final controller = FocusOnItController();
+      addTearDown(controller.dispose);
+      FocusVisibilityInfo? lastInfo;
+      final tipOffset = -50 * math.sqrt(2) * 0.5;
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: ClipRect(
+              child: SizedBox(
+                width: 400,
+                height: 200,
+                child: Transform.translate(
+                  offset: Offset(0, -100 + tipOffset),
+                  child: Center(
+                    child: Transform.rotate(
+                      angle: math.pi / 4,
+                      child: FocusOnIt(
+                        controller: controller,
+                        viewport: FocusViewportConfig(
+                          threshold: 0.2,
+                          onVisibilityChanged: (info) => lastInfo = info,
+                        ),
+                        child: const SizedBox.square(dimension: 100),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Half of the top half-diamond has area 0.125 (AABB would report 0.25).
+      expect(lastInfo?.visibleFraction, closeTo(0.125, 0.01));
+      expect(controller.isFocused, isFalse);
+    });
+
+    testWidgets('tracks paint-only Transform.translate animations',
+        (tester) async {
+      final controller = FocusOnItController();
+      addTearDown(controller.dispose);
+      var offsetX = 0.0;
+      late StateSetter moveBox;
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 200,
+              height: 200,
+              child: ClipRect(
+                child: StatefulBuilder(
+                  builder: (_, setState) {
+                    moveBox = setState;
+                    return Transform.translate(
+                      offset: Offset(offsetX, 0),
+                      child: FocusOnIt(
+                        controller: controller,
+                        viewport: const FocusViewportConfig(),
+                        child: const SizedBox(width: 200, height: 200),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(controller.isFocused, isTrue);
+      expect(controller.visibleFraction, closeTo(1.0, 0.01));
+
+      moveBox(() => offsetX = 140);
+      await tester.pumpAndSettle();
+
+      expect(controller.isFocused, isFalse);
+
+      moveBox(() => offsetX = 40);
+      await tester.pumpAndSettle();
+
+      expect(controller.isFocused, isTrue);
+      expect(controller.visibleFraction, closeTo(0.8, 0.01));
+    });
   });
 }
 
