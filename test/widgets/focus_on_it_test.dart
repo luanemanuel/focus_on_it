@@ -1462,6 +1462,48 @@ void main() {
       expect(controller.isFocused, isTrue);
       expect(controller.visibleFraction, closeTo(0.8, 0.01));
     });
+
+    testWidgets('normalizes visibleBounds to local coordinates under scale',
+        (tester) async {
+      FocusVisibilityInfo? lastInfo;
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: ClipRect(
+              child: SizedBox(
+                width: 100,
+                height: 200,
+                child: OverflowBox(
+                  minWidth: 0,
+                  minHeight: 0,
+                  maxWidth: 200,
+                  maxHeight: 200,
+                  alignment: Alignment.topLeft,
+                  child: Transform.scale(
+                    scale: 2,
+                    alignment: Alignment.topLeft,
+                    child: FocusOnIt(
+                      viewport: FocusViewportConfig(
+                        onVisibilityChanged: (info) => lastInfo = info,
+                      ),
+                      child: const SizedBox(width: 100, height: 100),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(lastInfo?.visibleFraction, closeTo(0.5, 0.01));
+      expect(lastInfo?.size, const Size(100, 100));
+      expect(lastInfo?.visibleBounds, const Rect.fromLTWH(0, 0, 50, 100));
+    });
   });
 }
 

@@ -194,19 +194,25 @@ class _ViewportVisibilityElement extends SingleChildRenderObjectElement
     double widgetTop = 0;
     double widgetRight = 0;
     double widgetBottom = 0;
+    double originX = 0;
+    double originY = 0;
+    double scaleX = 1;
+    double scaleY = 1;
     var hasAxisBounds = false;
 
     if (isAxisAligned) {
       final s = scratchTransform.storage;
       if (s[11] == 0.0 && s[15] == 1.0) {
-        final x0 = s[12];
-        final y0 = s[13];
-        final x1 = s[0] * size.width + x0;
-        final y1 = s[5] * size.height + y0;
-        widgetLeft = x0 < x1 ? x0 : x1;
-        widgetRight = x0 > x1 ? x0 : x1;
-        widgetTop = y0 < y1 ? y0 : y1;
-        widgetBottom = y0 > y1 ? y0 : y1;
+        scaleX = s[0];
+        scaleY = s[5];
+        originX = s[12];
+        originY = s[13];
+        final x1 = scaleX * size.width + originX;
+        final y1 = scaleY * size.height + originY;
+        widgetLeft = originX < x1 ? originX : x1;
+        widgetRight = originX > x1 ? originX : x1;
+        widgetTop = originY < y1 ? originY : y1;
+        widgetBottom = originY > y1 ? originY : y1;
         if (!widgetLeft.isFinite ||
             !widgetRight.isFinite ||
             !widgetTop.isFinite ||
@@ -226,6 +232,11 @@ class _ViewportVisibilityElement extends SingleChildRenderObjectElement
         widgetTop = rect.top;
         widgetRight = rect.right;
         widgetBottom = rect.bottom;
+        originX = widgetLeft;
+        originY = widgetTop;
+        scaleX = size.width > 0 ? (widgetRight - widgetLeft) / size.width : 1.0;
+        scaleY =
+            size.height > 0 ? (widgetBottom - widgetTop) / size.height : 1.0;
         hasAxisBounds = true;
       }
     }
@@ -342,10 +353,29 @@ class _ViewportVisibilityElement extends SingleChildRenderObjectElement
       }
 
       final fraction = rawFraction.clamp(0.0, 1.0);
-      final bLeft = iLeft - widgetLeft;
-      final bTop = iTop - widgetTop;
-      final bRight = iRight - widgetLeft;
-      final bBottom = iBottom - widgetTop;
+      final double bLeft;
+      final double bRight;
+      if (scaleX == 1.0) {
+        bLeft = iLeft - widgetLeft;
+        bRight = iRight - widgetLeft;
+      } else {
+        final lx0 = (iLeft - originX) / scaleX;
+        final lx1 = (iRight - originX) / scaleX;
+        bLeft = (lx0 < lx1 ? lx0 : lx1).clamp(0.0, size.width);
+        bRight = (lx0 > lx1 ? lx0 : lx1).clamp(0.0, size.width);
+      }
+
+      final double bTop;
+      final double bBottom;
+      if (scaleY == 1.0) {
+        bTop = iTop - widgetTop;
+        bBottom = iBottom - widgetTop;
+      } else {
+        final ly0 = (iTop - originY) / scaleY;
+        final ly1 = (iBottom - originY) / scaleY;
+        bTop = (ly0 < ly1 ? ly0 : ly1).clamp(0.0, size.height);
+        bBottom = (ly0 > ly1 ? ly0 : ly1).clamp(0.0, size.height);
+      }
 
       final last = _lastInfo;
       if (last != null &&

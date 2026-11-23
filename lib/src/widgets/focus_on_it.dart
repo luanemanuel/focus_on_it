@@ -269,8 +269,11 @@ class _FocusOnItState extends State<FocusOnIt>
 
   @override
   void onRouteSyncFlush() {
+    if (!_routeSyncScheduled || !mounted || _disposing) {
+      _routeSyncScheduled = false;
+      return;
+    }
     _routeSyncScheduled = false;
-    if (!mounted || _disposing) return;
     _syncPendingConfig();
     if (!mounted || _disposing) return;
 
