@@ -14,13 +14,11 @@
   <a href="https://flutter.dev"><img src="https://img.shields.io/badge/platform-flutter-02569B.svg" alt="Flutter Platform"></a>
 </p>
 
-Focus on It lets you know when a Flutter widget actually has the user's attention.
+Focus on It tells you when a Flutter widget actually has the user's attention.
 
-Wrap any screen or widget to pause videos, mute audio, stop camera previews, or sync state the moment someone switches routes, opens a dialog, changes tabs, scrolls past an item, or sends the app to the background. It has zero external dependencies and runs straight on Flutter.
+Wrap a screen, tab, or feed item to pause video, mute audio, stop camera previews, or sync state the moment someone pushes a route, opens a dialog, switches tabs, scrolls an item offscreen, or backgrounds the app. Zero external dependencies.
 
 ## Install
-
-Add it with Flutter:
 
 ```sh
 flutter pub add focus_on_it:^3.0.0-dev.2
@@ -33,15 +31,11 @@ dependencies:
   focus_on_it: ^3.0.0-dev.2
 ```
 
-Then import it:
-
 ```dart
 import 'package:focus_on_it/focus_on_it.dart';
 ```
 
-## Basic usage
-
-Wrap the widget you want to watch with `FocusOnIt`:
+## Usage
 
 ```dart
 @override
@@ -58,11 +52,11 @@ Widget build(BuildContext context) {
 }
 ```
 
-Opening a dialog or bottom sheet unfocuses the screen behind it and focuses it again when dismissed. If you only want full opaque route changes to unfocus, pass `includeDialogs: false`. `IndexedStack`, `Offstage`, and `TickerMode` transitions are handled automatically too.
+Dialogs and bottom sheets unfocus the route underneath and restore focus when closed; pass `includeDialogs: false` if only opaque routes should unfocus. Tab containers such as `IndexedStack` (including `GoRouter`'s `StatefulShellRoute.indexedStack`), `Offstage`, and `TickerMode` are tracked automatically.
 
 ## Scrollable feeds & viewports
 
-If your widget sits inside a `ListView`, `PageView`, or `CustomScrollView` and should react as it scrolls in and out of view, pass `viewport`:
+If the widget lives inside a `ListView`, `PageView`, `CustomScrollView`, or `NestedScrollView` and should react as it scrolls into and out of view, pass `viewport`:
 
 ```dart
 FocusOnIt(
@@ -79,11 +73,11 @@ FocusOnIt(
 )
 ```
 
-`threshold` sets the minimum visible fraction in `(0.0, 1.0]` before the widget counts as visible (defaults to `0.5`, and still triggers even when a widget is taller than the screen). `minFocusDuration` waits for the widget to stay above `threshold` for that long before firing `onFocus`, which helps ignore quick flings. By default `applyDwellOnResume` is `false` so visible widgets resume right away when returning from the background; set it to `true` if `minFocusDuration` should re-apply on foreground return too.
+`threshold` sets how much of the widget must be visible in `(0.0, 1.0]` before it counts as visible (defaults to `0.5`, and still works for widgets taller than the viewport). `minFocusDuration` skips quick flings by requiring visibility to hold before firing `onFocus`. By default `applyDwellOnResume` is `false` so visible items resume immediately after returning from the background; set it to `true` if `minFocusDuration` should also apply on app resume.
 
 ## Reading focus state
 
-Need the focus state outside a callback? Attach a `FocusOnItController`, or read it directly inside child widgets:
+Attach a `FocusOnItController`, or read the state directly from descendant widgets:
 
 ```dart
 final controller = FocusOnItController();
@@ -99,13 +93,13 @@ FocusOnIt(
 );
 ```
 
-- `FocusOnIt.isFocusedOf(context)` only rebuilds that child when focus actually flips.
+- `FocusOnIt.isFocusedOf(context)` rebuilds that child only when focus changes.
 - `FocusOnIt.of(context)` gives you the full `FocusState` (`isFocused`, `isVisible`, `isInForeground`, `visibleFraction`).
-- `FocusOnItController` extends `ValueNotifier<FocusState>`, so you can listen to it or bind it to `ValueListenableBuilder`.
+- `FocusOnItController` extends `ValueNotifier<FocusState>`, so it plugs into listeners and `ValueListenableBuilder`.
 
-## App lifecycle hooks
+## App lifecycle
 
-If you also want window or exit hooks from `AppLifecycleListener`, pass `appLifecycle`:
+If you need window or exit hooks from `AppLifecycleListener`, pass `appLifecycle`:
 
 ```dart
 FocusOnIt(
@@ -124,11 +118,11 @@ FocusOnIt(
 )
 ```
 
-All `FocusOnIt` widgets in the same app share a single `AppLifecycleListener` underneath, only creating a separate one if a widget sets `onExitRequested`.
+Across mobile, web, and desktop, `paused` and `hidden` (backgrounded apps, hidden browser tabs, minimized desktop windows) clear focus and restore it on `resumed`. On desktop, losing OS window focus fires `appLifecycle.onInactive` while keeping route focus active so side-by-side windows aren't disrupted until hidden. All `FocusOnIt` widgets share a single `AppLifecycleListener`, creating an extra one only when `onExitRequested` is set.
 
 ## Benchmarks
 
-Each package runs in its own isolated test project with warm-up rounds and plain `SizedBox` trees so layout noise doesn't get in the way.
+Each package runs in its own isolated test project with warm-up rounds and plain `SizedBox` trees so layout cost doesn't skew the numbers.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/luanemanuel/focus_on_it/3.0.0-dev/assets/benchmarks/detection_speed.png" alt="Focus Detection Speed & Dialog Coverage">
@@ -138,32 +132,28 @@ Each package runs in its own isolated test project with warm-up rounds and plain
   <img src="https://raw.githubusercontent.com/luanemanuel/focus_on_it/3.0.0-dev/assets/benchmarks/runtime_performance.png" alt="Runtime Build & Scroll Performance">
 </p>
 
-By default, Focus on It skips viewport math completely (`Fast Path`) and triggers on the next frame after a route or dialog transition, keeping scroll frames light. Turning on `viewport` enables per-frame scroll intersection checks only for the widgets that ask for it.
+By default, Focus on It skips viewport math completely (`Fast Path`) and reacts on the next frame after route or dialog transitions. Enabling `viewport` runs batched scroll intersection checks only for the widgets that opt in. Raw stats and runner setup live in [benchmark/README.md](benchmark/README.md).
 
-Full runner setup and raw numbers live in [benchmark/README.md](benchmark/README.md).
+## Trade-offs
 
-## Limitations & trade-offs
+Focus on It avoids polling timers and full render-layer traversals to keep normal screens and feeds fast. Because of that:
 
-Focus on It trades full render-layer inspection for lower overhead on normal screens and feeds. Keep these boundaries in mind when choosing how to wire it:
-
-- **Paint-only animations:** transforms that skip layout and scroll (`SlideTransition`, `Transform.translate`) won't re-measure `viewport` bounds until the next layout or scroll event.
-- **Non-scrollable clips & `Stack` overlays:** `ClipRect`, `ClipRRect`, `OverflowBox`, and sibling overlays inside a `Stack` (outside `Navigator` routes/dialogs) are not factored into visibility fractions.
-- **Rotated widgets:** `Transform.rotate` bounds use an axis-aligned bounding box (AABB), which can overestimate the visible area at angled rotations.
-- **`IndexedStack` & `Offstage`:** unlike routes (strictly event-driven), widgets inside an `IndexedStack` or `Offstage` run a tiny O(1) cached ancestor check per frame to catch non-rebuilding switches (`const` tab lists).
-
-If your app needs pixel-accurate occlusion across nested clips, arbitrary overlays, or animated transforms, `visibility_detector` is still a solid choice.
-
-## Upgrading from 2.x
-
-Run `dart fix --apply` to clean up removed parameters automatically, and check [MIGRATION.md](MIGRATION.md) for the short list of API updates.
+- Paint-only animations (`SlideTransition`, `Transform.translate`) don't re-measure `viewport` bounds until the next layout or scroll tick.
+- Non-scrollable clips (`ClipRect`, `ClipRRect`, `OverflowBox`) and sibling overlays inside a `Stack` (outside `Navigator` routes/dialogs) don't count toward visibility fractions.
+- Rotated widgets (`Transform.rotate`) use an axis-aligned bounding box, which overestimates the visible area at angled rotations.
+- Widgets inside `IndexedStack` or `Offstage` run a small cached ancestor check per frame to catch non-rebuilding switches such as `const` tab lists, whereas regular routes stay purely event-driven.
 
 ## Example
 
-The [example](example/) app includes three small demos covering route and dialog focus, scrollable viewports, and `IndexedStack` tabs with `FocusOnIt.isFocusedOf(context)`.
+The [example](example/) app covers route and dialog focus, scrollable viewports, and `IndexedStack` tabs with `FocusOnIt.isFocusedOf(context)`.
 
-## Contributing & issues
+## Upgrading from 2.x
 
-Found a bug or want to pitch an improvement? Open an issue or pull request on [GitHub](https://github.com/luanemanuel/focus_on_it/issues). Keep code formatted (`dart format`), clean under `flutter analyze --fatal-infos`, and covered by tests.
+Run `dart fix --apply` to drop removed parameters automatically, and see [MIGRATION.md](MIGRATION.md) for the short list of API updates.
+
+## Contributing
+
+Issues and pull requests are welcome on [GitHub](https://github.com/luanemanuel/focus_on_it/issues). Keep code formatted (`dart format`), clean under `flutter analyze --fatal-infos`, and covered by tests.
 
 ## License
 

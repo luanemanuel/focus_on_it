@@ -3,8 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:focus_on_it/focus_on_it.dart';
 
 void main() {
-  group('FocusOnIt initial mount', () {
-    testWidgets('triggers onFocus and onVisibilityGained by default',
+  group('mount', () {
+    testWidgets('triggers onFocus and onVisibilityGained on initial build',
         (tester) async {
       final events = <String>[];
       final controller = FocusOnItController();
@@ -54,8 +54,8 @@ void main() {
     });
   });
 
-  group('FocusOnIt navigation & route visibility', () {
-    testWidgets('fires onUnfocus and onFocus immediately on Navigator push/pop',
+  group('navigation & tabs', () {
+    testWidgets('fires onUnfocus and onFocus on route push and pop',
         (tester) async {
       final events = <String>[];
       final navigatorKey = GlobalKey<NavigatorState>();
@@ -97,7 +97,50 @@ void main() {
       expect(events, ['focus', 'visGained']);
     });
 
-    testWidgets('unfocuses on dialog when includeDialogs is true',
+    testWidgets(
+        'focuses pushed routes with HeroController without extra rebuilds',
+        (tester) async {
+      final navigatorKey = GlobalKey<NavigatorState>();
+      final pushedController = FocusOnItController();
+      addTearDown(pushedController.dispose);
+      final pushedEvents = <String>[];
+
+      await tester.pumpWidget(
+        WidgetsApp(
+          navigatorKey: navigatorKey,
+          navigatorObservers: [HeroController()],
+          color: const Color(0xFFFFFFFF),
+          pageRouteBuilder: <T>(settings, pageBuilder) => PageRouteBuilder<T>(
+            settings: settings,
+            pageBuilder: (context, _, __) => pageBuilder(context),
+          ),
+          home: const Text('Home'),
+        ),
+      );
+
+      navigatorKey.currentState!.push<void>(
+        PageRouteBuilder<void>(
+          transitionDuration: const Duration(milliseconds: 200),
+          pageBuilder: (_, __, ___) => FocusOnIt(
+            controller: pushedController,
+            onFocus: () => pushedEvents.add('focus'),
+            child: Builder(
+              builder: (context) =>
+                  Text('focused=${FocusOnIt.isFocusedOf(context)}'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(pushedEvents, ['focus']);
+      expect(pushedController.isFocused, isTrue);
+      expect(find.text('focused=true'), findsOneWidget);
+    });
+
+    testWidgets('unfocuses behind dialogs when includeDialogs is true',
         (tester) async {
       final events = <String>[];
       final navigatorKey = GlobalKey<NavigatorState>();
@@ -135,7 +178,7 @@ void main() {
       expect(events, ['focus']);
     });
 
-    testWidgets('keeps focus on dialog when includeDialogs is false',
+    testWidgets('keeps focus behind dialogs when includeDialogs is false',
         (tester) async {
       final events = <String>[];
       final navigatorKey = GlobalKey<NavigatorState>();
@@ -169,8 +212,7 @@ void main() {
       expect(events, isEmpty);
     });
 
-    testWidgets('responds to TickerMode and IndexedStack switches',
-        (tester) async {
+    testWidgets('tracks TickerMode and IndexedStack switches', (tester) async {
       final tab0Events = <String>[];
       final tab1Events = <String>[];
       var activeIndex = 0;
@@ -211,10 +253,213 @@ void main() {
       expect(tab0Events, ['focus', 'unfocus']);
       expect(tab1Events, ['focus']);
     });
+
+    testWidgets('switches active const tabs inside IndexedStack',
+        (tester) async {
+      final tabTracker = _ConstTabTracker();
+      addTearDown(_ConstTabTracker.reset);
+      _ConstTabTracker.active = tabTracker;
+
+      var selectedTab = 0;
+      late StateSetter updateTab;
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: StatefulBuilder(
+            builder: (_, setState) {
+              updateTab = setState;
+              return IndexedStack(
+                index: selectedTab,
+                children: const [
+                  _ConstIndexedTab(index: 0),
+                  _ConstIndexedTab(index: 1),
+                  _ConstIndexedTab(index: 2),
+                ],
+              );
+            },
+          ),
+        ),
+      );
+
+      expect(tabTracker.focused, [true, false, false]);
+      expect(tabTracker.focusCounts, [1, 0, 0]);
+      expect(tabTracker.unfocusCounts, [0, 0, 0]);
+
+      updateTab(() => selectedTab = 1);
+      await tester.pump();
+
+      expect(tabTracker.focused, [false, true, false]);
+      expect(tabTracker.focusCounts, [1, 1, 0]);
+      expect(tabTracker.unfocusCounts, [1, 0, 0]);
+
+      updateTab(() => selectedTab = 2);
+      await tester.pump();
+
+      expect(tabTracker.focused, [false, false, true]);
+      expect(tabTracker.focusCounts, [1, 1, 1]);
+      expect(tabTracker.unfocusCounts, [1, 1, 0]);
+    });
+
+    testWidgets('keeps IndexedStack tabs working after unmount and remount',
+        (tester) async {
+      final tracker = _ConstTabTracker();
+      addTearDown(_ConstTabTracker.reset);
+      _ConstTabTracker.active = tracker;
+
+      var selectedTab = 0;
+      late StateSetter updateTab;
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: StatefulBuilder(
+            builder: (_, setState) {
+              updateTab = setState;
+              return IndexedStack(
+                index: selectedTab,
+                children: const [
+                  _ConstIndexedTab(index: 0),
+                  _ConstIndexedTab(index: 1),
+                ],
+              );
+            },
+          ),
+        ),
+      );
+
+      expect(tracker.focusCounts, [1, 0, 0]);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      selectedTab = 0;
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: StatefulBuilder(
+            builder: (_, setState) {
+              updateTab = setState;
+              return IndexedStack(
+                index: selectedTab,
+                children: const [
+                  _ConstIndexedTab(index: 0),
+                  _ConstIndexedTab(index: 1),
+                ],
+              );
+            },
+          ),
+        ),
+      );
+
+      expect(tracker.focusCounts, [2, 0, 0]);
+      updateTab(() => selectedTab = 1);
+      await tester.pump();
+      expect(tracker.focusCounts, [2, 1, 0]);
+      expect(tracker.focused, [false, true, false]);
+    });
+
+    testWidgets('tracks nested Navigator routes inside IndexedStack tabs',
+        (tester) async {
+      final tab0NavKey = GlobalKey<NavigatorState>();
+      final tab1NavKey = GlobalKey<NavigatorState>();
+      final tab0RootController = FocusOnItController();
+      final tab1RootController = FocusOnItController();
+      final tab1DetailController = FocusOnItController();
+      addTearDown(tab0RootController.dispose);
+      addTearDown(tab1RootController.dispose);
+      addTearDown(tab1DetailController.dispose);
+
+      var tab0FocusCount = 0;
+      var tab0UnfocusCount = 0;
+      var tab1FocusCount = 0;
+      var tab1UnfocusCount = 0;
+      var selectedTab = 0;
+      late StateSetter updateTab;
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: StatefulBuilder(
+            builder: (_, setState) {
+              updateTab = setState;
+              return IndexedStack(
+                index: selectedTab,
+                children: [
+                  Navigator(
+                    key: tab0NavKey,
+                    onGenerateRoute: (_) => PageRouteBuilder<void>(
+                      pageBuilder: (_, __, ___) => FocusOnIt(
+                        controller: tab0RootController,
+                        onFocus: () => tab0FocusCount++,
+                        onUnfocus: () => tab0UnfocusCount++,
+                        child: const Text('Tab 0 Root'),
+                      ),
+                    ),
+                  ),
+                  Navigator(
+                    key: tab1NavKey,
+                    onGenerateRoute: (_) => PageRouteBuilder<void>(
+                      pageBuilder: (_, __, ___) => FocusOnIt(
+                        controller: tab1RootController,
+                        onFocus: () => tab1FocusCount++,
+                        onUnfocus: () => tab1UnfocusCount++,
+                        child: const Text('Tab 1 Root'),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(tab0RootController.isFocused, isTrue);
+      expect(tab1RootController.isFocused, isFalse);
+      expect(tab0FocusCount, 1);
+      expect(tab1FocusCount, 0);
+
+      updateTab(() => selectedTab = 1);
+      await tester.pump();
+
+      expect(tab0RootController.isFocused, isFalse);
+      expect(tab1RootController.isFocused, isTrue);
+      expect(tab0UnfocusCount, 1);
+      expect(tab1FocusCount, 1);
+
+      tab1NavKey.currentState!.push<void>(
+        PageRouteBuilder<void>(
+          pageBuilder: (_, __, ___) => FocusOnIt(
+            controller: tab1DetailController,
+            child: const Text('Tab 1 Detail'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tab1RootController.isFocused, isFalse);
+      expect(tab1DetailController.isFocused, isTrue);
+      expect(tab0RootController.isFocused, isFalse);
+      expect(tab1UnfocusCount, 1);
+
+      tab1NavKey.currentState!.pop();
+      await tester.pumpAndSettle();
+
+      expect(tab1RootController.isFocused, isTrue);
+      expect(tab1FocusCount, 2);
+
+      updateTab(() => selectedTab = 0);
+      await tester.pump();
+
+      expect(tab1RootController.isFocused, isFalse);
+      expect(tab0RootController.isFocused, isTrue);
+      expect(tab0FocusCount, 2);
+      expect(tab1UnfocusCount, 2);
+    });
   });
 
-  group('FocusOnIt app lifecycle & widget updates', () {
-    testWidgets('handles foreground/background and appLifecycle callbacks',
+  group('app lifecycle', () {
+    testWidgets('tracks foreground transitions and appLifecycle callbacks',
         (tester) async {
       final events = <String>[];
 
@@ -258,8 +503,55 @@ void main() {
       expect(events, ['show', 'focus', 'fgGained']);
     });
 
-    testWidgets('didUpdateWidget refreshes onFocus and appLifecycle callbacks',
+    testWidgets('keeps route focus on inactive and unfocuses on hidden',
         (tester) async {
+      final events = <String>[];
+      final controller = FocusOnItController();
+      addTearDown(controller.dispose);
+      addTearDown(
+        () => tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        ),
+      );
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: FocusOnIt(
+            controller: controller,
+            onFocus: () => events.add('focus'),
+            onUnfocus: () => events.add('unfocus'),
+            appLifecycle: FocusAppLifecycleCallbacks(
+              onInactive: () => events.add('inactive'),
+              onHide: () => events.add('hide'),
+              onShow: () => events.add('show'),
+            ),
+            child: const Text('Desktop Window'),
+          ),
+        ),
+      );
+
+      expect(controller.isFocused, isTrue);
+      events.clear();
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      expect(controller.isFocused, isTrue);
+      expect(events, ['inactive']);
+      events.clear();
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      expect(controller.isFocused, isFalse);
+      expect(events, ['unfocus', 'hide']);
+      events.clear();
+
+      tester.binding
+        ..handleAppLifecycleStateChanged(AppLifecycleState.inactive)
+        ..handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      expect(controller.isFocused, isTrue);
+      expect(events, ['show', 'focus']);
+    });
+
+    testWidgets('refreshes callbacks on widget update', (tester) async {
       var firstFocusCount = 0;
       var secondFocusCount = 0;
       var firstHideCount = 0;
@@ -317,7 +609,7 @@ void main() {
       expect(secondHideCount, 1);
     });
 
-    testWidgets('notifyOnDispose fires unfocus on teardown only when enabled',
+    testWidgets('fires unfocus on dispose only when notifyOnDispose is true',
         (tester) async {
       var silentUnfocus = 0;
       var noisyUnfocus = 0;
@@ -349,7 +641,7 @@ void main() {
     });
   });
 
-  group('FocusOnItController & FocusOnItScope', () {
+  group('controller & scope', () {
     testWidgets('isFocusedOf rebuilds child only when isFocused changes',
         (tester) async {
       final scrollController = ScrollController();
@@ -404,8 +696,6 @@ void main() {
       final buildsAtFull = focusedChildBuilds;
       final stateBuildsAtFull = stateChildBuilds;
 
-      // Scroll slightly so visibleFraction drops from 1.0 to ~0.8 (still
-      // above threshold).
       scrollController.jumpTo(60);
       await tester.pump();
       await tester.pump();
@@ -414,7 +704,6 @@ void main() {
       expect(focusedChildBuilds, buildsAtFull);
       expect(stateChildBuilds, greaterThan(stateBuildsAtFull));
 
-      // Scroll past threshold so isFocused flips to false.
       scrollController.jumpTo(250);
       await tester.pump();
       await tester.pump();
@@ -423,7 +712,7 @@ void main() {
       expect(focusedChildBuilds, greaterThan(buildsAtFull));
     });
 
-    testWidgets('of/isFocusedOf throw informative error without ancestor',
+    testWidgets('of and isFocusedOf throw FlutterError without ancestor',
         (tester) async {
       await tester.pumpWidget(
         Builder(
@@ -439,8 +728,8 @@ void main() {
     });
   });
 
-  group('FocusOnIt viewport mode', () {
-    testWidgets('tracks ListView item threshold and visibility bounds',
+  group('viewport', () {
+    testWidgets('tracks threshold and visibleFraction while scrolling ListView',
         (tester) async {
       tester.view.physicalSize = const Size(400, 600);
       tester.view.devicePixelRatio = 1;
@@ -479,25 +768,22 @@ void main() {
 
       expect(events, isEmpty);
 
-      // Reveal 40% (80px of 200px): below threshold 0.5.
       scrollController.jumpTo(80);
       await tester.pump();
       expect(events, isEmpty);
       expect(lastInfo?.visibleFraction, closeTo(0.4, 0.01));
 
-      // Reveal 60% (120px of 200px): crosses threshold 0.5.
       scrollController.jumpTo(120);
       await tester.pump();
       expect(events, ['focus']);
       expect(lastInfo?.visibleFraction, closeTo(0.6, 0.01));
 
-      // Scroll completely off top edge.
       scrollController.jumpTo(900);
       await tester.pump();
       expect(events, ['focus', 'unfocus']);
     });
 
-    testWidgets('focuses widgets larger than the viewport above threshold',
+    testWidgets('focuses widgets taller than viewport above threshold',
         (tester) async {
       tester.view.physicalSize = const Size(400, 600);
       tester.view.devicePixelRatio = 1;
@@ -524,13 +810,11 @@ void main() {
         ),
       );
 
-      // 600 / 1200 = 0.5 >= 0.4 -> focuses despite being taller than viewport.
+      // 600 / 1200 = 0.50, exceeding 0.40.
       expect(events, ['focus']);
     });
 
-    testWidgets(
-        'minFocusDuration ignores quick scroll passes and confirms dwell',
-        (tester) async {
+    testWidgets('waits for minFocusDuration before focusing', (tester) async {
       tester.view.physicalSize = const Size(400, 600);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
@@ -565,7 +849,6 @@ void main() {
         ),
       );
 
-      // Scroll into view briefly for 100ms, then scroll back out.
       scrollController.jumpTo(150);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
@@ -575,7 +858,6 @@ void main() {
 
       expect(events, isEmpty);
 
-      // Scroll into view and stay for full 300ms.
       scrollController.jumpTo(150);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
@@ -583,7 +865,87 @@ void main() {
       expect(events, ['focus']);
     });
 
-    testWidgets('clips visibility at ListView top below a fixed header bar',
+    testWidgets(
+        'resumes immediately from background when applyDwellOnResume is false',
+        (tester) async {
+      tester.view.physicalSize = const Size(400, 400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      final scrollController = ScrollController();
+      final controller = FocusOnItController();
+      addTearDown(scrollController.dispose);
+      addTearDown(controller.dispose);
+      addTearDown(
+        () => tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        ),
+      );
+
+      var focusCount = 0;
+      var unfocusCount = 0;
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: SizedBox(
+            width: 400,
+            height: 400,
+            child: ListView(
+              controller: scrollController,
+              children: [
+                const SizedBox(height: 500),
+                FocusOnIt(
+                  controller: controller,
+                  viewport: const FocusViewportConfig(
+                    threshold: 0.6,
+                    minFocusDuration: Duration(milliseconds: 250),
+                  ),
+                  onFocus: () => focusCount++,
+                  onUnfocus: () => unfocusCount++,
+                  child: const SizedBox(width: 400, height: 200),
+                ),
+                const SizedBox(height: 400),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(controller.isFocused, isFalse);
+      expect(focusCount, 0);
+
+      scrollController.jumpTo(350);
+      await tester.pump();
+      await tester.pump();
+
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(controller.isFocused, isFalse);
+      expect(focusCount, 0);
+
+      await tester.pump(const Duration(milliseconds: 60));
+      expect(controller.isFocused, isTrue);
+      expect(focusCount, 1);
+
+      tester.binding
+        ..handleAppLifecycleStateChanged(AppLifecycleState.inactive)
+        ..handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      await tester.pump();
+
+      expect(controller.isFocused, isFalse);
+      expect(unfocusCount, 1);
+
+      tester.binding
+        ..handleAppLifecycleStateChanged(AppLifecycleState.inactive)
+        ..handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+
+      expect(controller.isFocused, isTrue);
+      expect(focusCount, 2);
+    });
+
+    testWidgets('clips visibility at ListView top below a fixed header',
         (tester) async {
       tester.view.physicalSize = const Size(400, 600);
       tester.view.devicePixelRatio = 1;
@@ -621,168 +983,83 @@ void main() {
 
       expect(lastInfo?.visibleFraction, closeTo(1.0, 0.01));
 
-      // Scroll 120px past the ListView top edge (below the 100px header):
-      // 80px of the 200px child stays visible -> 0.40, not 0.90.
+      // 120px scrolled past top clips 120/200px, leaving 0.40 visible.
       scrollController.jumpTo(120);
       await tester.pump();
 
       expect(lastInfo?.visibleFraction, closeTo(0.4, 0.01));
     });
-  });
 
-  group('FocusOnIt regression fixes', () {
-    testWidgets(
-        'pushed route with HeroController focuses immediately without rebuild',
+    testWidgets('tracks visibility in NestedScrollView with pinned header',
         (tester) async {
-      final navigatorKey = GlobalKey<NavigatorState>();
-      final pushedController = FocusOnItController();
-      addTearDown(pushedController.dispose);
-      final pushedEvents = <String>[];
+      tester.view.physicalSize = const Size(400, 400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      final item0Controller = FocusOnItController();
+      final item1Controller = FocusOnItController();
+      addTearDown(item0Controller.dispose);
+      addTearDown(item1Controller.dispose);
 
       await tester.pumpWidget(
-        WidgetsApp(
-          navigatorKey: navigatorKey,
-          navigatorObservers: [HeroController()],
-          color: const Color(0xFFFFFFFF),
-          pageRouteBuilder: <T>(settings, pageBuilder) => PageRouteBuilder<T>(
-            settings: settings,
-            pageBuilder: (context, _, __) => pageBuilder(context),
-          ),
-          home: const Text('Home'),
-        ),
-      );
-
-      navigatorKey.currentState!.push<void>(
-        PageRouteBuilder<void>(
-          transitionDuration: const Duration(milliseconds: 200),
-          pageBuilder: (_, __, ___) => FocusOnIt(
-            controller: pushedController,
-            onFocus: () => pushedEvents.add('focus'),
-            child: Builder(
-              builder: (context) =>
-                  Text('focused=${FocusOnIt.isFocusedOf(context)}'),
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: SizedBox(
+            width: 400,
+            height: 400,
+            child: NestedScrollView(
+              headerSliverBuilder: (_, __) => [
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _FixedHeaderDelegate(height: 80),
+                ),
+              ],
+              body: CustomScrollView(
+                slivers: [
+                  SliverList(
+                    delegate: SliverChildListDelegate([
+                      FocusOnIt(
+                        controller: item0Controller,
+                        viewport: const FocusViewportConfig(),
+                        child: const SizedBox(
+                          width: 400,
+                          height: 260,
+                          child: Text('Item 0'),
+                        ),
+                      ),
+                      FocusOnIt(
+                        controller: item1Controller,
+                        viewport: const FocusViewportConfig(),
+                        child: const SizedBox(
+                          width: 400,
+                          height: 260,
+                          child: Text('Item 1'),
+                        ),
+                      ),
+                      const SizedBox(height: 400),
+                    ]),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       );
-
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
 
-      expect(pushedEvents, ['focus']);
-      expect(pushedController.isFocused, isTrue);
-      expect(find.text('focused=true'), findsOneWidget);
+      expect(item0Controller.isFocused, isTrue);
+      expect(item1Controller.isFocused, isFalse);
+
+      await tester.drag(find.text('Item 0'), const Offset(0, -240));
+      await tester.pump();
+      await tester.pump();
+
+      expect(item0Controller.isFocused, isFalse);
+      expect(item1Controller.isFocused, isTrue);
     });
 
-    testWidgets(
-        'IndexedStack with const children focuses active tab and switches '
-        'cleanly', (tester) async {
-      final tabTracker = _ConstTabTracker();
-      addTearDown(_ConstTabTracker.reset);
-      _ConstTabTracker.active = tabTracker;
-
-      var selectedTab = 0;
-      late StateSetter updateTab;
-
-      await tester.pumpWidget(
-        Directionality(
-          textDirection: TextDirection.ltr,
-          child: StatefulBuilder(
-            builder: (_, setState) {
-              updateTab = setState;
-              return IndexedStack(
-                index: selectedTab,
-                children: const [
-                  _ConstIndexedTab(index: 0),
-                  _ConstIndexedTab(index: 1),
-                  _ConstIndexedTab(index: 2),
-                ],
-              );
-            },
-          ),
-        ),
-      );
-
-      expect(tabTracker.focused, [true, false, false]);
-      expect(tabTracker.focusCounts, [1, 0, 0]);
-      expect(tabTracker.unfocusCounts, [0, 0, 0]);
-
-      updateTab(() => selectedTab = 1);
-      await tester.pump();
-
-      expect(tabTracker.focused, [false, true, false]);
-      expect(tabTracker.focusCounts, [1, 1, 0]);
-      expect(tabTracker.unfocusCounts, [1, 0, 0]);
-
-      updateTab(() => selectedTab = 2);
-      await tester.pump();
-
-      expect(tabTracker.focused, [false, false, true]);
-      expect(tabTracker.focusCounts, [1, 1, 1]);
-      expect(tabTracker.unfocusCounts, [1, 1, 0]);
-    });
-
-    testWidgets(
-        'IndexedStack switches remain clean after full unmount and remount',
+    testWidgets('handles MediaQuery updates without dependency loops',
         (tester) async {
-      final tracker = _ConstTabTracker();
-      addTearDown(_ConstTabTracker.reset);
-      _ConstTabTracker.active = tracker;
-
-      var selectedTab = 0;
-      late StateSetter updateTab;
-
-      await tester.pumpWidget(
-        Directionality(
-          textDirection: TextDirection.ltr,
-          child: StatefulBuilder(
-            builder: (_, setState) {
-              updateTab = setState;
-              return IndexedStack(
-                index: selectedTab,
-                children: const [
-                  _ConstIndexedTab(index: 0),
-                  _ConstIndexedTab(index: 1),
-                ],
-              );
-            },
-          ),
-        ),
-      );
-
-      expect(tracker.focusCounts, [1, 0, 0]);
-
-      // Unmount everything (emulates leaving route completely), then remount.
-      await tester.pumpWidget(const SizedBox.shrink());
-      selectedTab = 0;
-      await tester.pumpWidget(
-        Directionality(
-          textDirection: TextDirection.ltr,
-          child: StatefulBuilder(
-            builder: (_, setState) {
-              updateTab = setState;
-              return IndexedStack(
-                index: selectedTab,
-                children: const [
-                  _ConstIndexedTab(index: 0),
-                  _ConstIndexedTab(index: 1),
-                ],
-              );
-            },
-          ),
-        ),
-      );
-
-      expect(tracker.focusCounts, [2, 0, 0]);
-      updateTab(() => selectedTab = 1);
-      await tester.pump();
-      expect(tracker.focusCounts, [2, 1, 0]);
-      expect(tracker.focused, [false, true, false]);
-    });
-
-    testWidgets(
-        'ViewportVisibilityTracker handles MediaQuery updates without '
-        'registering post-frame dependency loops', (tester) async {
       var viewInsetsBottom = 0.0;
       late StateSetter updateInsets;
       FocusVisibilityInfo? lastInfo;
@@ -864,4 +1141,29 @@ class _ConstIndexedTab extends StatelessWidget {
       child: Text('Tab $index'),
     );
   }
+}
+
+class _FixedHeaderDelegate extends SliverPersistentHeaderDelegate {
+  _FixedHeaderDelegate({required this.height});
+
+  final double height;
+
+  @override
+  double get minExtent => height;
+
+  @override
+  double get maxExtent => height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return SizedBox(height: height, child: const Text('Header'));
+  }
+
+  @override
+  bool shouldRebuild(_FixedHeaderDelegate oldDelegate) =>
+      oldDelegate.height != height;
 }

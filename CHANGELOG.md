@@ -12,7 +12,7 @@
 
 ### Documentation & Benchmarks
 - Updated benchmark chart framing (`No 500ms timer`, neutral dialog scope pills, and direct scroll comparison between `3.0 (Viewport)` and `visibility_detector`).
-- Added a `Limitations & trade-offs` section to `README.md` covering paint-only animations, non-`Scrollable` clips/`Stack` overlays, rotated AABBs, and `IndexedStack`/`Offstage` watcher costs.
+- Added cross-platform lifecycle notes, trade-offs, and expanded widget tests covering `NestedScrollView`, nested `Navigator` tabs in `IndexedStack`, dwell + resume, and desktop/web states.
 
 ## 3.0.0-dev.1
 
