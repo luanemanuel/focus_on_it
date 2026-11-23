@@ -100,12 +100,19 @@ class _FocusOnItState extends State<FocusOnIt> {
   late final AppLifecycleTracker _lifecycleTracker;
   late final FocusStateMachine _stateMachine;
 
+  final List<RenderOffstage> _watchedOffstages = [];
+  final List<({RenderIndexedStack stack, int childIndex})>
+      _watchedIndexedStacks = [];
+
   bool _tickerEnabled = true;
   bool _routeActive = true;
   bool _hasIndexedOrOffstageAncestor = false;
   bool _hasScopeDependents = false;
   bool _suppressSetState = false;
   bool _disposing = false;
+  bool _ancestorsCached = false;
+  bool _lastHiddenByAncestor = false;
+  ModalRoute<dynamic>? _modalRoute;
   RenderOffstage? _modalRouteOffstage;
   late FocusState _scopeSnapshot;
 
@@ -121,6 +128,7 @@ class _FocusOnItState extends State<FocusOnIt> {
       initialForeground: _lifecycleTracker.isInForeground,
       triggerOnInit: widget.triggerOnInit,
       minFocusDuration: widget.viewport?.minFocusDuration ?? Duration.zero,
+      applyDwellOnResume: widget.viewport?.applyDwellOnResume ?? false,
       notifyOnDispose: widget.notifyOnDispose,
       onFocus: widget.onFocus,
       onUnfocus: widget.onUnfocus,
@@ -144,6 +152,7 @@ class _FocusOnItState extends State<FocusOnIt> {
     // Kept for compatibility with Flutter >=3.13.0 (valuesOf requires 3.35.0+).
     // ignore: deprecated_member_use
     _tickerEnabled = TickerMode.of(context);
+    _modalRoute = ModalRoute.of(context);
     _routeActive = _resolveRouteActive();
     final hadHiddenAncestor = _hasIndexedOrOffstageAncestor;
     var hasHiddenAncestor = false;
@@ -164,10 +173,13 @@ class _FocusOnItState extends State<FocusOnIt> {
     });
     _modalRouteOffstage = modalRouteOffstage;
     _hasIndexedOrOffstageAncestor = hasHiddenAncestor;
+    _ancestorsCached = false;
+    _watchedOffstages.clear();
+    _watchedIndexedStacks.clear();
     if (hasHiddenAncestor && !hadHiddenAncestor) {
-      _lifecycleTracker.addAncestorWatcher(_flushRouteSync);
+      _lifecycleTracker.addAncestorWatcher(_checkWatchedAncestorsOnFrame);
     } else if (!hasHiddenAncestor && hadHiddenAncestor) {
-      _lifecycleTracker.removeAncestorWatcher(_flushRouteSync);
+      _lifecycleTracker.removeAncestorWatcher(_checkWatchedAncestorsOnFrame);
     }
     _scheduleRouteSync();
   }
@@ -191,6 +203,7 @@ class _FocusOnItState extends State<FocusOnIt> {
         ..updateConfig(
           useViewport: widget.viewport != null,
           minFocusDuration: widget.viewport?.minFocusDuration ?? Duration.zero,
+          applyDwellOnResume: widget.viewport?.applyDwellOnResume ?? false,
           notifyOnDispose: widget.notifyOnDispose,
         );
 
@@ -213,8 +226,13 @@ class _FocusOnItState extends State<FocusOnIt> {
   @override
   void dispose() {
     _disposing = true;
+    _watchedOffstages.clear();
+    _watchedIndexedStacks.clear();
+    _ancestorsCached = false;
+    _modalRoute = null;
+    _modalRouteOffstage = null;
     _lifecycleTracker
-      ..removeAncestorWatcher(_flushRouteSync)
+      ..removeAncestorWatcher(_checkWatchedAncestorsOnFrame)
       ..cancelRouteSync(_flushRouteSync)
       ..dispose();
     _stateMachine.dispose();
@@ -225,7 +243,7 @@ class _FocusOnItState extends State<FocusOnIt> {
       _stateMachine.updateForeground(isInForeground: isInForeground);
 
   bool _resolveRouteActive() {
-    final route = ModalRoute.of(context);
+    final route = _modalRoute;
     if (route == null) return true;
     return widget.includeDialogs ? route.isCurrent : route.isActive;
   }
@@ -235,31 +253,111 @@ class _FocusOnItState extends State<FocusOnIt> {
     _lifecycleTracker.scheduleRouteSync(_flushRouteSync);
   }
 
+  void _checkWatchedAncestorsOnFrame() {
+    if (!mounted || _disposing) return;
+    if (!_ancestorsCached) {
+      _scheduleRouteSync();
+      return;
+    }
+    var hidden = false;
+    for (var i = 0; i < _watchedOffstages.length; i++) {
+      final offstage = _watchedOffstages[i];
+      if (!offstage.attached) {
+        _ancestorsCached = false;
+        _scheduleRouteSync();
+        return;
+      }
+      if (offstage.offstage) {
+        hidden = true;
+        break;
+      }
+    }
+    if (!hidden) {
+      for (var i = 0; i < _watchedIndexedStacks.length; i++) {
+        final entry = _watchedIndexedStacks[i];
+        if (!entry.stack.attached) {
+          _ancestorsCached = false;
+          _scheduleRouteSync();
+          return;
+        }
+        final activeIndex = entry.stack.index;
+        if (activeIndex == null || activeIndex != entry.childIndex) {
+          hidden = true;
+          break;
+        }
+      }
+    }
+    if (hidden != _lastHiddenByAncestor) {
+      _scheduleRouteSync();
+    }
+  }
+
   void _flushRouteSync() {
     if (!mounted || _disposing) return;
-    final isRouteActive = _tickerEnabled &&
-        _routeActive &&
-        (!_hasIndexedOrOffstageAncestor || !_isHiddenByAncestor());
+    final hidden = _hasIndexedOrOffstageAncestor && _isHiddenByAncestor();
+    _lastHiddenByAncestor = hidden;
+    final isRouteActive = _tickerEnabled && _routeActive && !hidden;
     _stateMachine.updateRouteActive(isRouteActive: isRouteActive);
   }
 
   bool _isHiddenByAncestor() {
+    if (_ancestorsCached) {
+      var cacheValid = true;
+      var hidden = false;
+      for (var i = 0; i < _watchedOffstages.length; i++) {
+        final offstage = _watchedOffstages[i];
+        if (!offstage.attached) {
+          cacheValid = false;
+          break;
+        }
+        if (offstage.offstage) hidden = true;
+      }
+      if (cacheValid) {
+        for (var i = 0; i < _watchedIndexedStacks.length; i++) {
+          final entry = _watchedIndexedStacks[i];
+          if (!entry.stack.attached) {
+            cacheValid = false;
+            break;
+          }
+          final activeIndex = entry.stack.index;
+          if (activeIndex == null || activeIndex != entry.childIndex) {
+            hidden = true;
+          }
+        }
+      }
+      if (cacheValid) return hidden;
+    }
+
+    _watchedOffstages.clear();
+    _watchedIndexedStacks.clear();
+    var isHidden = false;
     var node = context.findRenderObject();
     while (node != null) {
       final parent = node.parent;
-      if (parent is RenderOffstage &&
-          parent.offstage &&
-          !identical(parent, _modalRouteOffstage)) {
-        return true;
+      if (parent is RenderOffstage) {
+        final route = _modalRoute;
+        final isModalOffstage = identical(parent, _modalRouteOffstage) ||
+            (_modalRouteOffstage == null &&
+                route != null &&
+                route.isCurrent &&
+                route.offstage);
+        if (!isModalOffstage) {
+          _watchedOffstages.add(parent);
+          if (parent.offstage) {
+            isHidden = true;
+          }
+        }
       }
       if (parent is RenderIndexedStack) {
-        final activeIndex = parent.index;
-        if (activeIndex == null) return true;
         var child = parent.firstChild;
         var childIndex = 0;
         while (child != null) {
           if (identical(child, node)) {
-            if (childIndex != activeIndex) return true;
+            _watchedIndexedStacks.add((stack: parent, childIndex: childIndex));
+            final activeIndex = parent.index;
+            if (activeIndex == null || childIndex != activeIndex) {
+              isHidden = true;
+            }
             break;
           }
           child = parent.childAfter(child);
@@ -268,7 +366,8 @@ class _FocusOnItState extends State<FocusOnIt> {
       }
       node = parent;
     }
-    return false;
+    _ancestorsCached = true;
+    return isHidden;
   }
 
   void _handleViewportMeasured(FocusVisibilityInfo info) {

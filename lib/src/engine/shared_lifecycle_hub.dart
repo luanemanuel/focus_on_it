@@ -15,46 +15,22 @@ typedef _Subscriber = ({
 class SharedLifecycleHub {
   /// Returns the shared [SharedLifecycleHub] instance for [binding].
   factory SharedLifecycleHub(WidgetsBinding binding) {
-    return _hubs.putIfAbsent(binding, () => SharedLifecycleHub._(binding));
+    return _hubs[binding] ??= SharedLifecycleHub._(binding);
   }
 
   SharedLifecycleHub._(this._binding) {
     _lastState = _binding.lifecycleState;
     _isInForeground = _isForegroundState(_lastState);
-    _listener = AppLifecycleListener(
-      binding: _binding,
-      onResume: () => _setForeground(isInForeground: true),
-      onPause: () => _setForeground(isInForeground: false),
-      onHide: () {
-        _setForeground(isInForeground: false);
-        _dispatch((sub) => sub.getCallbacks()?.onHide?.call());
-      },
-      onShow: () => _dispatch((sub) => sub.getCallbacks()?.onShow?.call()),
-      onInactive: () =>
-          _dispatch((sub) => sub.getCallbacks()?.onInactive?.call()),
-      onRestart: () =>
-          _dispatch((sub) => sub.getCallbacks()?.onRestart?.call()),
-      onDetach: () {
-        _setForeground(isInForeground: false);
-        _dispatch((sub) => sub.getCallbacks()?.onDetach?.call());
-      },
-      onStateChange: (state) {
-        final oldState = _lastState;
-        _lastState = state;
-        _dispatch(
-          (sub) => sub.getCallbacks()?.onStateChange?.call(oldState, state),
-        );
-      },
-    );
   }
 
-  static final Map<WidgetsBinding, SharedLifecycleHub> _hubs = {};
+  static final Expando<SharedLifecycleHub> _hubs =
+      Expando<SharedLifecycleHub>();
 
   final WidgetsBinding _binding;
   final Map<Object, _Subscriber> _subscribers = {};
   final Set<VoidCallback> _pendingRouteSyncs = {};
   final Set<VoidCallback> _ancestorWatchers = {};
-  late final AppLifecycleListener _listener;
+  AppLifecycleListener? _listener;
   AppLifecycleState? _lastState;
   late bool _isInForeground;
   bool _routeSyncFlushScheduled = false;
@@ -97,6 +73,7 @@ class SharedLifecycleHub {
     required ValueChanged<bool> onForegroundChanged,
     required LifecycleCallbacksProvider getCallbacks,
   }) {
+    _ensureListener();
     _subscribers[token] = (
       onForegroundChanged: onForegroundChanged,
       getCallbacks: getCallbacks,
@@ -109,15 +86,46 @@ class SharedLifecycleHub {
     if (_subscribers.isEmpty) {
       _pendingRouteSyncs.clear();
       _ancestorWatchers.clear();
-      _listener.dispose();
-      _hubs.remove(_binding);
+      _listener?.dispose();
+      _listener = null;
     }
+  }
+
+  void _ensureListener() {
+    if (_listener != null) return;
+    _lastState = _binding.lifecycleState;
+    _isInForeground = _isForegroundState(_lastState);
+    _listener = AppLifecycleListener(
+      binding: _binding,
+      onResume: () => _setForeground(isInForeground: true),
+      onPause: () => _setForeground(isInForeground: false),
+      onHide: () {
+        _setForeground(isInForeground: false);
+        _dispatch((sub) => sub.getCallbacks()?.onHide?.call());
+      },
+      onShow: () => _dispatch((sub) => sub.getCallbacks()?.onShow?.call()),
+      onInactive: () =>
+          _dispatch((sub) => sub.getCallbacks()?.onInactive?.call()),
+      onRestart: () =>
+          _dispatch((sub) => sub.getCallbacks()?.onRestart?.call()),
+      onDetach: () {
+        _setForeground(isInForeground: false);
+        _dispatch((sub) => sub.getCallbacks()?.onDetach?.call());
+      },
+      onStateChange: (state) {
+        final oldState = _lastState;
+        _lastState = state;
+        _dispatch(
+          (sub) => sub.getCallbacks()?.onStateChange?.call(oldState, state),
+        );
+      },
+    );
   }
 
   void _handlePersistentFrame(Duration _) {
     if (_ancestorWatchers.isEmpty) return;
     for (final callback in List<VoidCallback>.of(_ancestorWatchers)) {
-      scheduleRouteSync(callback);
+      callback();
     }
   }
 

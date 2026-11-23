@@ -11,6 +11,7 @@ class FocusStateMachine {
     bool initialForeground = true,
     bool triggerOnInit = true,
     Duration minFocusDuration = Duration.zero,
+    bool applyDwellOnResume = false,
     bool notifyOnDispose = false,
     VoidCallback? onFocus,
     VoidCallback? onUnfocus,
@@ -23,8 +24,10 @@ class FocusStateMachine {
         _isInForeground = initialForeground,
         _triggerOnInit = triggerOnInit,
         _minFocusDuration = minFocusDuration,
+        _applyDwellOnResume = applyDwellOnResume,
         _notifyOnDispose = notifyOnDispose,
         _isViewportVisible = !useViewport,
+        _hasViewportMeasurement = !useViewport,
         _onFocus = onFocus,
         _onUnfocus = onUnfocus,
         _onVisibilityGained = onVisibilityGained,
@@ -42,10 +45,13 @@ class FocusStateMachine {
   bool _isInForeground;
   final bool _triggerOnInit;
   Duration _minFocusDuration;
+  bool _applyDwellOnResume;
   bool _notifyOnDispose;
 
   bool _isRouteActive = false;
   bool _isViewportVisible;
+  bool _hasRouteMeasurement = false;
+  bool _hasViewportMeasurement;
   double _visibleFraction = 0;
 
   bool _isFocused = false;
@@ -84,6 +90,7 @@ class FocusStateMachine {
   /// Updates whether the enclosing route/subtree is currently active.
   void updateRouteActive({required bool isRouteActive}) {
     if (_disposed) return;
+    _hasRouteMeasurement = true;
     _isRouteActive = isRouteActive;
     _evaluateVisibility();
   }
@@ -94,6 +101,7 @@ class FocusStateMachine {
     required double visibleFraction,
   }) {
     if (_disposed) return;
+    _hasViewportMeasurement = true;
     _isViewportVisible = isViewportVisible;
     _visibleFraction = visibleFraction.clamp(0.0, 1.0);
     _evaluateVisibility();
@@ -108,9 +116,10 @@ class FocusStateMachine {
       _cancelDwellTimer();
       final wasFocused = _isFocused;
       _isFocused = false;
+      _isVisibleConfirmed = _rawVisible;
       _syncState(
         isFocused: false,
-        isVisible: _rawVisible,
+        isVisible: _isVisibleConfirmed,
         isInForeground: false,
         visibleFraction: _effectiveFraction,
       );
@@ -135,7 +144,7 @@ class FocusStateMachine {
         return;
       }
 
-      if (_minFocusDuration > Duration.zero) {
+      if (_applyDwellOnResume && _minFocusDuration > Duration.zero) {
         _scheduleDwellTimer(fromForeground: true);
         _syncState(
           isFocused: _isFocused,
@@ -189,6 +198,7 @@ class FocusStateMachine {
   void updateConfig({
     bool? useViewport,
     Duration? minFocusDuration,
+    bool? applyDwellOnResume,
     bool? notifyOnDispose,
   }) {
     if (_disposed) return;
@@ -199,9 +209,11 @@ class FocusStateMachine {
       if (!useViewport) {
         _isViewportVisible = true;
         _visibleFraction = 1;
+        _hasViewportMeasurement = true;
       } else {
         _isViewportVisible = false;
         _visibleFraction = 0;
+        _hasViewportMeasurement = false;
       }
       needsEvaluation = true;
     }
@@ -218,6 +230,20 @@ class FocusStateMachine {
             _scheduleDwellTimer(fromForeground: fromForeground);
           }
         }
+      }
+    }
+
+    if (applyDwellOnResume != null &&
+        applyDwellOnResume != _applyDwellOnResume) {
+      _applyDwellOnResume = applyDwellOnResume;
+      if (!applyDwellOnResume &&
+          _dwellTimer != null &&
+          _dwellFromForeground &&
+          _isInForeground &&
+          _rawVisible &&
+          !_isFocused) {
+        _cancelDwellTimer();
+        _confirmFocus(fromForeground: true);
       }
     }
 
@@ -310,7 +336,9 @@ class FocusStateMachine {
         _onUnfocus?.call();
         _onVisibilityLost?.call();
       } else {
-        _hasInitialized = true;
+        if (_hasRouteMeasurement && _hasViewportMeasurement) {
+          _hasInitialized = true;
+        }
         _isVisibleConfirmed = false;
         _syncState(
           isFocused: false,

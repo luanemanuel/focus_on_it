@@ -44,11 +44,13 @@ class _ViewportVisibilityElement extends SingleChildRenderObjectElement {
 
   final List<ScrollableState> _scrollables = [];
   final List<ScrollPosition> _scrollPositions = [];
+  FlutterView? _view;
   FocusVisibilityInfo? _lastInfo;
 
   @override
   void mount(Element? parent, Object? newSlot) {
     super.mount(parent, newSlot);
+    _view = View.maybeOf(this);
     ViewportVisibilityHub().addMetricsListener(scheduleMeasurement);
     _attachScrollListeners();
     scheduleMeasurement();
@@ -57,6 +59,7 @@ class _ViewportVisibilityElement extends SingleChildRenderObjectElement {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _view = View.maybeOf(this);
     _attachScrollListeners();
     scheduleMeasurement();
   }
@@ -73,6 +76,7 @@ class _ViewportVisibilityElement extends SingleChildRenderObjectElement {
       ..removeMetricsListener(scheduleMeasurement)
       ..cancelFlush(_measureVisibilityWithCache);
     _detachScrollListeners();
+    _view = null;
     super.unmount();
   }
 
@@ -163,14 +167,15 @@ class _ViewportVisibilityElement extends SingleChildRenderObjectElement {
   }
 
   Rect? _resolveWindowBounds(Map<FlutterView, Rect> windowBoundsCache) {
-    final view = View.maybeOf(this);
+    final view = _view;
     if (view != null) {
       return windowBoundsCache[view] ??=
           Offset.zero & (view.physicalSize / view.devicePixelRatio);
     }
-    final mediaSize = MediaQuery.maybeSizeOf(this);
-    if (mediaSize != null) {
-      return Offset.zero & mediaSize;
+    final mediaQuery =
+        getElementForInheritedWidgetOfExactType<MediaQuery>()?.widget;
+    if (mediaQuery is MediaQuery) {
+      return Offset.zero & mediaQuery.data.size;
     }
     return null;
   }
