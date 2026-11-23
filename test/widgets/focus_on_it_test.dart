@@ -507,6 +507,69 @@ void main() {
         expect(controller.isFocused, isTrue);
       },
     );
+
+    testWidgets(
+      'reparenting with GlobalKey under a covering dialog stays unfocused',
+      (tester) async {
+        final navigatorKey = GlobalKey<NavigatorState>();
+        final targetKey = GlobalKey();
+        final controller = FocusOnItController();
+        addTearDown(controller.dispose);
+        var moveToSecondSlot = false;
+        late StateSetter rebuild;
+
+        await tester.pumpWidget(
+          WidgetsApp(
+            navigatorKey: navigatorKey,
+            color: const Color(0xFF000000),
+            pageRouteBuilder: <T>(settings, builder) => PageRouteBuilder<T>(
+              settings: settings,
+              pageBuilder: (context, _, __) => builder(context),
+            ),
+            home: StatefulBuilder(
+              builder: (_, setState) {
+                rebuild = setState;
+                return Row(
+                  children: [
+                    if (!moveToSecondSlot)
+                      FocusOnIt(
+                        key: targetKey,
+                        controller: controller,
+                        child: const Text('Moved'),
+                      ),
+                    if (moveToSecondSlot)
+                      FocusOnIt(
+                        key: targetKey,
+                        controller: controller,
+                        child: const Text('Moved'),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ),
+        );
+
+        expect(controller.isFocused, isTrue);
+
+        navigatorKey.currentState!.push<void>(
+          PageRouteBuilder<void>(
+            opaque: false,
+            pageBuilder: (_, __, ___) => const Text('Dialog'),
+          ),
+        );
+        await tester.pump();
+        expect(controller.isFocused, isFalse);
+
+        rebuild(() => moveToSecondSlot = true);
+        await tester.pump();
+        expect(controller.isFocused, isFalse);
+
+        navigatorKey.currentState!.pop();
+        await tester.pumpAndSettle();
+        expect(controller.isFocused, isTrue);
+      },
+    );
   });
 
   group('app lifecycle', () {

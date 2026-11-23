@@ -165,7 +165,7 @@ def _draw_metric_panel(
 
     label_x = px + 178
     bar_x = px + 190
-    bar_max_w = 92 if row_badges else 156
+    bar_max_w = 92 if row_badges else (112 if highlight_fastest_v3 else 156)
     bar_h = 20
     row_ys = [330, 282, 234, 186, 138, 90]
 

@@ -38,7 +38,7 @@ class _OffstageWatchEntry {
 
   final RenderOffstage offstage;
   bool lastValue;
-  final List<SharedLifecycleClient> clients = [];
+  final Set<SharedLifecycleClient> clients = {};
 }
 
 class _IndexedStackWatchEntry {
@@ -46,7 +46,7 @@ class _IndexedStackWatchEntry {
 
   final RenderIndexedStack stack;
   int? lastIndex;
-  final List<SharedLifecycleClient> clients = [];
+  final Set<SharedLifecycleClient> clients = {};
 }
 
 /// Shared [AppLifecycleListener] hub per [WidgetsBinding] to avoid allocating
@@ -136,7 +136,7 @@ class SharedLifecycleHub {
       if (widget is Offstage && childWidget is PageStorage) {
         final renderObject = element.renderObject;
         if (renderObject is RenderOffstage) {
-          modalOffstage ??= renderObject;
+          modalOffstage = renderObject;
         }
       } else if (widget is IndexedStack || widget is Offstage) {
         hasHidden = true;
@@ -175,9 +175,7 @@ class SharedLifecycleHub {
       _offstageWatchesByNode[offstage] = entry;
       _offstageWatches.add(entry);
     }
-    if (!entry.clients.contains(client)) {
-      entry.clients.add(client);
-    }
+    entry.clients.add(client);
     _ensurePersistentFrameCallback();
   }
 
@@ -185,7 +183,7 @@ class SharedLifecycleHub {
   void unwatchOffstage(RenderOffstage offstage, SharedLifecycleClient client) {
     final entry = _offstageWatchesByNode[offstage];
     if (entry == null) return;
-    _removeFromList(entry.clients, client);
+    entry.clients.remove(client);
     if (entry.clients.isEmpty) {
       _offstageWatchesByNode.remove(offstage);
       _removeFromList(_offstageWatches, entry);
@@ -204,9 +202,7 @@ class SharedLifecycleHub {
       _indexedStackWatchesByNode[stack] = entry;
       _indexedStackWatches.add(entry);
     }
-    if (!entry.clients.contains(client)) {
-      entry.clients.add(client);
-    }
+    entry.clients.add(client);
     _ensurePersistentFrameCallback();
   }
 
@@ -217,7 +213,7 @@ class SharedLifecycleHub {
   ) {
     final entry = _indexedStackWatchesByNode[stack];
     if (entry == null) return;
-    _removeFromList(entry.clients, client);
+    entry.clients.remove(client);
     if (entry.clients.isEmpty) {
       _indexedStackWatchesByNode.remove(stack);
       _removeFromList(_indexedStackWatches, entry);
@@ -357,10 +353,10 @@ class SharedLifecycleHub {
   }
 
   static void _notifyClientsAncestorChanged(
-    List<SharedLifecycleClient> clients,
+    Set<SharedLifecycleClient> clients,
   ) {
-    for (var i = 0; i < clients.length; i++) {
-      clients[i].onAncestorVisibilityChanged();
+    for (final client in clients) {
+      client.onAncestorVisibilityChanged();
     }
   }
 
@@ -373,10 +369,13 @@ class SharedLifecycleHub {
       final batch = _pendingClients;
       _pendingClients = _flushingClients;
       _flushingClients = batch;
-      for (var i = 0; i < batch.length; i++) {
-        batch[i].onRouteSyncFlush();
+      try {
+        for (var i = 0; i < batch.length; i++) {
+          batch[i].onRouteSyncFlush();
+        }
+      } finally {
+        batch.clear();
       }
-      batch.clear();
     }
     if (_pendingRouteSyncs.isNotEmpty) {
       final callbacks = List<VoidCallback>.of(_pendingRouteSyncs);

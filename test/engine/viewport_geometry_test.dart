@@ -73,6 +73,9 @@ void main() {
       const size = Size(100, 100);
       final singular = Matrix4.zero()..setEntry(3, 3, 1);
       final nonFinite = Matrix4.translationValues(double.nan, 0, 0);
+      final zeroScaleRotated = Matrix4.translationValues(100, 100, 0)
+        ..multiply(Matrix4.rotationZ(math.pi / 4))
+        ..multiply(Matrix4.diagonal3Values(0, 1, 1));
 
       expect(
         computeRotatedVisibility(
@@ -86,6 +89,14 @@ void main() {
         computeRotatedVisibility(
           size: size,
           transform: nonFinite,
+          clipRect: const Rect.fromLTWH(0, 0, 200, 200),
+        ).visibleFraction,
+        0.0,
+      );
+      expect(
+        computeRotatedVisibility(
+          size: size,
+          transform: zeroScaleRotated,
           clipRect: const Rect.fromLTWH(0, 0, 200, 200),
         ).visibleFraction,
         0.0,

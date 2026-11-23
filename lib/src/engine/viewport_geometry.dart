@@ -54,17 +54,17 @@ bool isAxisAlignedTransform(Matrix4 transform) {
     return (visibleFraction: 0.0, visibleBounds: Rect.zero);
   }
 
+  final quad = <Offset>[c0, c1, c2, c3];
+  final totalArea = _polygonArea(quad);
+  if (!totalArea.isFinite || totalArea <= 0) {
+    return (visibleFraction: 0.0, visibleBounds: Rect.zero);
+  }
+
   if (minX >= clipRect.left &&
       maxX <= clipRect.right &&
       minY >= clipRect.top &&
       maxY <= clipRect.bottom) {
     return (visibleFraction: 1.0, visibleBounds: Offset.zero & size);
-  }
-
-  final quad = <Offset>[c0, c1, c2, c3];
-  final totalArea = _polygonArea(quad);
-  if (!totalArea.isFinite || totalArea <= 0) {
-    return (visibleFraction: 0.0, visibleBounds: Rect.zero);
   }
 
   var clipped = _clipAgainstEdge(

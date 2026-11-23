@@ -130,6 +130,7 @@ class _FocusOnItState extends State<FocusOnIt>
   List<RenderOffstage>? _watchedOffstages;
   List<({RenderIndexedStack stack, RenderObject child})>? _watchedIndexedStacks;
   Map<Element, int>? _dependents;
+  int _nextDependentPrune = 16;
   AppLifecycleListener? _exitListener;
 
   bool _tickerEnabled = true;
@@ -190,7 +191,6 @@ class _FocusOnItState extends State<FocusOnIt>
     _ancestorsCached = false;
     _hasIndexedOrOffstageAncestor = false;
     _clearAncestorWatches();
-    _modalRoute = null;
     _modalRouteOffstage = null;
     super.deactivate();
   }
@@ -458,6 +458,11 @@ class _FocusOnItState extends State<FocusOnIt>
       final dependents = _dependents ??= {};
       dependents[dependentContext] =
           (dependents[dependentContext] ?? 0) | aspect;
+      if (dependents.length >= _nextDependentPrune) {
+        dependents.removeWhere((element, _) => !element.mounted);
+        _nextDependentPrune =
+            dependents.length >= 16 ? dependents.length * 2 : 16;
+      }
     }
   }
 
@@ -477,7 +482,10 @@ class _FocusOnItState extends State<FocusOnIt>
 
     final focusedChanged = previous.isFocused != nextState.isFocused;
     dependents.removeWhere((element, aspect) {
-      if (!element.mounted) return true;
+      if (!element.mounted ||
+          element.findAncestorStateOfType<_FocusOnItState>() != this) {
+        return true;
+      }
       if ((aspect & _aspectState) != 0 ||
           (focusedChanged && (aspect & _aspectFocused) != 0)) {
         element.markNeedsBuild();

@@ -3,16 +3,19 @@
 ### Bug Fixes
 - **Hub lifecycle memory leak (`SharedLifecycleHub`):** moved hub tracking to `Expando<SharedLifecycleHub>` with lazy `AppLifecycleListener` attachment and a single persistent frame callback per binding, avoiding stale callback retention when all widgets unmount.
 - **`triggerOnInit: false` + `viewport` race condition:** deferred initial setup completion until both route and first viewport measurements arrive, preventing unexpected initial `onFocus` callbacks.
-- **Dwell timer visibility state sync:** kept `FocusStateMachine.isVisible` aligned with `state.isVisible` when backgrounded while a dwell timer is running.
+- **Dwell timer visibility state sync:** kept `FocusStateMachine.isVisible` aligned with `state.isVisible` when backgrounded while a dwell timer is running, and preserved visibility across `viewport` enable transitions.
 - **No post-frame `InheritedWidget` dependencies:** cached `FlutterView` inside `mount`/`didChangeDependencies` and switched fallback `MediaQuery` reads to non-subscribing lookups inside `ViewportVisibilityTracker`.
-- **Resilient `ModalRoute` offstage handling & O(1) ancestor cache:** added `ModalRoute` offstage state fallback for hero transitions and cached ancestor `RenderIndexedStack` / `RenderOffstage` lookups to avoid per-frame tree walks.
+- **Build-phase safety & dynamic config updates:** deferred config/controller synchronization out of `didUpdateWidget`/`initState` into post-frame flushes, added dynamic `threshold` re-evaluation without scrolling, updated `FocusState` before firing `onVisibilityChanged`, and added `NaN`/`_disposed` re-entrancy guards.
+- **`GlobalKey` reparenting & nested routes:** added `deactivate`/`activate` lifecycle handling across `FocusOnIt` and `ViewportVisibilityTracker`, matched innermost `ModalRoute` offstage nodes in nested `Navigator`s, and tracked `IndexedStack` children by `RenderObject` identity.
 
 ### Features
 - **Configurable dwell on resume (`FocusViewportConfig.applyDwellOnResume`):** defaults to `false` for immediate resume when returning from background, with opt-in `true` for impression/analytics dwell behavior.
+- **Non-scrollable clips, exact rotation geometry & paint-only animations:** `viewport` mode now intersects ancestor `describeApproximatePaintClip` bounds (`ClipRect`, `ClipRRect`, `ClipOval`, `ClipPath`), computes exact Sutherland-Hodgman polygon visibility for rotated/skewed targets, and re-measures on paint-only transforms (`SlideTransition`, `Transform.translate`).
+- **Engine & runtime performance:** removed the per-widget `FocusOnItScope` wrapper in favor of lazy dependent tracking, switched `FocusOnIt` and viewport trackers to direct hub client interfaces (`SharedLifecycleClient` / `ViewportTrackerClient`), added shared per-`ScrollPosition` listener groups, reused per-frame ancestor scan/transform/clip/scrollable caches, and pooled common `const FocusState` snapshots.
 
 ### Documentation & Benchmarks
 - Updated benchmark chart framing (`No 500ms timer`, neutral dialog scope pills, and direct scroll comparison between `3.0 (Viewport)` and `visibility_detector`).
-- Added cross-platform lifecycle notes, trade-offs, and expanded widget tests covering `NestedScrollView`, nested `Navigator` tabs in `IndexedStack`, dwell + resume, and desktop/web states.
+- Streamlined `README.md` with cross-platform lifecycle notes and trade-offs, updated `example/pubspec.yaml`, added `library;` docs, and expanded engine/widget test suites.
 
 ## 3.0.0-dev.1
 
