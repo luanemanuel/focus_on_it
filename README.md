@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://pub.dev/packages/focus_on_it"><img src="https://img.shields.io/pub/v/focus_on_it.svg" alt="Pub.dev Version"></a>
+  <a href="https://pub.dev/packages/focus_on_it"><img src="https://img.shields.io/pub/v/focus_on_it.svg?include_prereleases" alt="Pub.dev Version"></a>
   <a href="https://github.com/luanemanuel/focus_on_it/actions"><img src="https://github.com/luanemanuel/focus_on_it/actions/workflows/test.yml/badge.svg" alt="Build Status"></a>
   <a href="https://pub.dev/packages/very_good_analysis"><img src="https://img.shields.io/badge/style-very_good_analysis-B22C89.svg" alt="style: very good analysis"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-purple.svg" alt="MIT License"></a>
@@ -52,6 +52,8 @@ Widget build(BuildContext context) {
 }
 ```
 
+`onFocus` and `onUnfocus` combine visibility and foreground state, and they already fire on route, dialog, scroll, and background changes, while `onVisibility*` and `onForeground*` let you react differently to screen/scroll visibility vs. app backgrounding.
+
 Dialogs and bottom sheets unfocus the route underneath and restore focus when closed; pass `includeDialogs: false` if only opaque routes should unfocus. Tab containers such as `IndexedStack` (including `GoRouter`'s `StatefulShellRoute.indexedStack`), `Offstage`, and `TickerMode` are tracked automatically.
 
 ## Scrollable feeds & viewports
@@ -95,7 +97,7 @@ FocusOnIt(
 
 - `FocusOnIt.isFocusedOf(context)` rebuilds that child only when focus changes.
 - `FocusOnIt.of(context)` gives you the full `FocusState` (`isFocused`, `isVisible`, `isInForeground`, `visibleFraction`).
-- `FocusOnItController` extends `ValueNotifier<FocusState>`, so it plugs into listeners and `ValueListenableBuilder`.
+- `FocusOnItController` extends `ValueNotifier<FocusState>`, so it plugs into listeners and `ValueListenableBuilder`. Call `controller.dispose()` in `State.dispose` when created inside a `StatefulWidget`.
 
 ## App lifecycle
 
