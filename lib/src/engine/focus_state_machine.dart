@@ -36,15 +36,31 @@ class FocusStateMachine {
         _onForegroundGained = onForegroundGained,
         _onForegroundLost = onForegroundLost,
         _onStateChanged = onStateChanged,
-        _state = FocusState(
-          isFocused: false,
-          isVisible: false,
-          isInForeground: initialForeground,
-        ),
+        _state =
+            initialForeground ? _unfocusedForeground : _unfocusedBackground,
         assert(
           !minFocusDuration.isNegative,
           'minFocusDuration must be non-negative',
         );
+
+  static const FocusState _unfocusedForeground = FocusState.initial;
+  static const FocusState _unfocusedBackground = FocusState(
+    isFocused: false,
+    isVisible: false,
+    isInForeground: false,
+  );
+  static const FocusState _focusedForeground = FocusState(
+    isFocused: true,
+    isVisible: true,
+    isInForeground: true,
+    visibleFraction: 1,
+  );
+  static const FocusState _visibleBackground = FocusState(
+    isFocused: false,
+    isVisible: true,
+    isInForeground: false,
+    visibleFraction: 1,
+  );
 
   bool _useViewport;
   bool _isInForeground;
@@ -426,12 +442,27 @@ class FocusStateMachine {
         current.visibleFraction == visibleFraction) {
       return;
     }
-    final next = FocusState(
-      isFocused: isFocused,
-      isVisible: isVisible,
-      isInForeground: isInForeground,
-      visibleFraction: visibleFraction,
-    );
+    final FocusState next;
+    if (!isFocused && !isVisible && visibleFraction == 0.0) {
+      next = isInForeground ? _unfocusedForeground : _unfocusedBackground;
+    } else if (isFocused &&
+        isVisible &&
+        isInForeground &&
+        visibleFraction == 1.0) {
+      next = _focusedForeground;
+    } else if (!isFocused &&
+        isVisible &&
+        !isInForeground &&
+        visibleFraction == 1.0) {
+      next = _visibleBackground;
+    } else {
+      next = FocusState(
+        isFocused: isFocused,
+        isVisible: isVisible,
+        isInForeground: isInForeground,
+        visibleFraction: visibleFraction,
+      );
+    }
     _state = next;
     _onStateChanged?.call(next);
   }

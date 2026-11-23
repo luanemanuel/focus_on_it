@@ -10,36 +10,36 @@
   "scroll_samples_count": 120,
   "scroll_widgets_count": 100,
   "route_latency_ms": {
-    "median": 3.196,
-    "mean": 3.242,
-    "stddev": 0.499,
-    "p95": 4.018,
-    "min": 2.582,
-    "max": 4.198
+    "median": 2.448,
+    "mean": 2.546,
+    "stddev": 0.336,
+    "p95": 3.039,
+    "min": 2.108,
+    "max": 3.15
   },
   "dialog_detection_ms": {
     "supported": true,
-    "median": 3.053,
-    "mean": 3.316,
-    "stddev": 0.68,
-    "p95": 4.797,
-    "min": 2.754,
-    "max": 5.216
+    "median": 2.701,
+    "mean": 2.934,
+    "stddev": 0.748,
+    "p95": 4.814,
+    "min": 2.1,
+    "max": 4.985
   },
   "mount_unmount_250_ms": {
-    "median": 10.621,
-    "mean": 11.341,
-    "stddev": 3.084,
-    "p95": 17.06,
-    "min": 6.716,
-    "max": 17.243
+    "median": 8.128,
+    "mean": 8.766,
+    "stddev": 2.439,
+    "p95": 14.142,
+    "min": 5.956,
+    "max": 14.568
   },
   "scroll_frame_100_ms": {
-    "median": 0.424,
-    "mean": 0.451,
-    "stddev": 0.14,
-    "p95": 0.562,
-    "min": 0.343,
-    "max": 1.431
+    "median": 0.437,
+    "mean": 0.464,
+    "stddev": 0.13,
+    "p95": 0.655,
+    "min": 0.329,
+    "max": 1.111
   }
 }
